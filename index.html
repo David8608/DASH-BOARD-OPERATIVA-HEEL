@@ -848,36 +848,102 @@ table.dataTable tbody tr:last-child td { border-bottom: none !important; }
         <div class="chart-card">
           <div class="chart-header">
             <div>
-              <div class="chart-title">Volumen de Servicios por Farmacia por Mes</div>
-              <div class="chart-sub">Servicios gestionados (domicilios) por punto de venta · datos reales del sistema · Ene–May 2026</div>
+              <div class="chart-title">Ticket Promedio por Punto de Venta por Mes</div>
+              <div class="chart-sub">Servicios gestionados (domicilios) y costo por servicio en $ · datos reales del sistema · Ene–May 2026</div>
             </div>
             <div class="section-actions">
-              <button class="export-btn excel-btn" onclick="exportTicketExcel()"><i class="fa-solid fa-file-excel"></i> Excel</button>
+              <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+                <select class="filter-select" id="ticketFiltroClasif" onchange="renderTicketTable()" style="font-size:11px;padding:4px 10px">
+                  <option value="TODOS">Todas las clasificaciones</option>
+                  <option value="NODO">Nodo</option>
+                  <option value="PUNTO">Punto</option>
+                  <option value="DEPOSITO">Depósito</option>
+                </select>
+                <select class="filter-select" id="ticketFiltroCiudad" onchange="renderTicketTable()" style="font-size:11px;padding:4px 10px">
+                  <option value="TODAS">Todas las ciudades</option>
+                  <option value="BOGOTA">Bogotá</option>
+                  <option value="MEDELLIN">Medellín</option>
+                  <option value="CALI">Cali</option>
+                  <option value="BARRANQUILLA">Barranquilla</option>
+                  <option value="CARTAGENA">Cartagena</option>
+                  <option value="PEREIRA">Pereira</option>
+                  <option value="IBAGUE">Ibagué</option>
+                  <option value="CHIA">Chía</option>
+                  <option value="BUCARAMANGA">Bucaramanga</option>
+                  <option value="MONTERIA">Montería</option>
+                  <option value="NEIVA">Neiva</option>
+                  <option value="TUNJA">Tunja</option>
+                  <option value="MANIZALES">Manizales</option>
+                </select>
+                <button class="export-btn excel-btn" onclick="exportTicketExcel()"><i class="fa-solid fa-file-excel"></i> Excel</button>
+              </div>
             </div>
           </div>
+
+          <!-- Legend -->
+          <div style="display:flex;gap:16px;margin-bottom:14px;flex-wrap:wrap">
+            <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--txt-secondary)">
+              <span style="width:10px;height:10px;border-radius:2px;background:#1976D2;display:inline-block"></span> Servicios (cantidad)
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--txt-secondary)">
+              <span style="width:10px;height:10px;border-radius:2px;background:#00ACC1;display:inline-block"></span> Ticket promedio ($COP)
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--txt-secondary)">
+              <span style="background:rgba(255,179,0,0.15);border:1px solid rgba(255,179,0,0.3);padding:1px 7px;border-radius:3px;font-family:var(--font-mono);font-size:10px;color:#FFB300">NODO</span> Nodo (1.5 mensajeros)
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--txt-secondary)">
+              <span style="background:rgba(233,30,99,0.12);border:1px solid rgba(233,30,99,0.3);padding:1px 7px;border-radius:3px;font-family:var(--font-mono);font-size:10px;color:#F48FB1">NODO 2.5</span> Nodo especial (2.5 mensajeros)
+            </div>
+          </div>
+
           <div style="overflow-x:auto">
-            <table class="rank-table" id="ticketTable">
-              <thead><tr>
-                <th style="min-width:180px">Farmacia <span style="color:var(--txt-muted);font-weight:400">+ tendencia</span></th>
-                <th style="text-align:center">Enero</th>
-                <th style="text-align:center">Febrero</th>
-                <th style="text-align:center">Marzo</th>
-                <th style="text-align:center">Abril</th>
-                <th style="text-align:center">Mayo</th>
-                <th style="text-align:center">Total</th>
-                <th style="text-align:center">Prom/Mes</th>
-                <th style="text-align:center">Var. Mar→Abr</th>
-              </tr></thead>
+            <table style="width:100%;border-collapse:collapse;font-size:12px" id="ticketMainTable">
+              <thead>
+                <tr style="border-bottom:2px solid var(--border3)">
+                  <th rowspan="2" style="font-size:10px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;color:var(--txt-muted);padding:8px 12px;text-align:left;vertical-align:bottom;white-space:nowrap;min-width:200px">Punto de Venta</th>
+                  <th rowspan="2" style="font-size:10px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;color:var(--txt-muted);padding:8px 10px;white-space:nowrap;vertical-align:bottom">Clasif.</th>
+                  <th rowspan="2" style="font-size:10px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;color:var(--txt-muted);padding:8px 10px;white-space:nowrap;vertical-align:bottom">Costo Mens.</th>
+                  <th colspan="2" style="font-size:10px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;color:#60A5FA;padding:6px 10px 4px;text-align:center;border-bottom:1px solid rgba(96,165,250,0.2)">Enero</th>
+                  <th colspan="2" style="font-size:10px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;color:#60A5FA;padding:6px 10px 4px;text-align:center;border-bottom:1px solid rgba(96,165,250,0.2)">Febrero</th>
+                  <th colspan="2" style="font-size:10px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;color:#60A5FA;padding:6px 10px 4px;text-align:center;border-bottom:1px solid rgba(96,165,250,0.2)">Marzo</th>
+                  <th colspan="2" style="font-size:10px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;color:#60A5FA;padding:6px 10px 4px;text-align:center;border-bottom:1px solid rgba(96,165,250,0.2)">Abril</th>
+                  <th colspan="2" style="font-size:10px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;color:#60A5FA;padding:6px 10px 4px;text-align:center;border-bottom:1px solid rgba(96,165,250,0.2)">Mayo</th>
+                  <th rowspan="2" style="font-size:10px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;color:var(--txt-muted);padding:8px 10px;white-space:nowrap;vertical-align:bottom;text-align:center">Total Srv.</th>
+                  <th rowspan="2" style="font-size:10px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;color:var(--txt-muted);padding:8px 10px;white-space:nowrap;vertical-align:bottom;text-align:center">T. Prom $</th>
+                  <th rowspan="2" style="font-size:10px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;color:var(--txt-muted);padding:8px 10px;white-space:nowrap;vertical-align:bottom;text-align:center">Var. Mar→Abr</th>
+                </tr>
+                <tr style="border-bottom:1px solid var(--border)">
+                  <th style="font-size:9px;font-family:var(--font-mono);color:var(--txt-muted);padding:4px 8px;text-align:center">Srv.</th>
+                  <th style="font-size:9px;font-family:var(--font-mono);color:var(--txt-muted);padding:4px 8px;text-align:center">Ticket $</th>
+                  <th style="font-size:9px;font-family:var(--font-mono);color:var(--txt-muted);padding:4px 8px;text-align:center">Srv.</th>
+                  <th style="font-size:9px;font-family:var(--font-mono);color:var(--txt-muted);padding:4px 8px;text-align:center">Ticket $</th>
+                  <th style="font-size:9px;font-family:var(--font-mono);color:var(--txt-muted);padding:4px 8px;text-align:center">Srv.</th>
+                  <th style="font-size:9px;font-family:var(--font-mono);color:var(--txt-muted);padding:4px 8px;text-align:center">Ticket $</th>
+                  <th style="font-size:9px;font-family:var(--font-mono);color:var(--txt-muted);padding:4px 8px;text-align:center">Srv.</th>
+                  <th style="font-size:9px;font-family:var(--font-mono);color:var(--txt-muted);padding:4px 8px;text-align:center">Ticket $</th>
+                  <th style="font-size:9px;font-family:var(--font-mono);color:var(--txt-muted);padding:4px 8px;text-align:center">Srv.</th>
+                  <th style="font-size:9px;font-family:var(--font-mono);color:var(--txt-muted);padding:4px 8px;text-align:center">Ticket $</th>
+                </tr>
+              </thead>
               <tbody id="ticketTbody"></tbody>
             </table>
           </div>
         </div>
+
         <div class="chart-card">
           <div class="chart-header">
-            <div class="chart-title">Barras Agrupadas — Ticket por Mes</div>
-            <div class="chart-sub">Top 8 farmacias</div>
+            <div class="chart-title">Servicios por Mes — Top 8 Puntos</div>
+            <div class="chart-sub">Volumen comparativo mensual por punto de venta</div>
           </div>
           <div style="position:relative;height:320px"><canvas id="chartTicketBar"></canvas></div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-header">
+            <div class="chart-title">Ticket Promedio $ por Punto</div>
+            <div class="chart-sub">Costo promedio por servicio por punto · verde = más económico · rojo = más costoso</div>
+          </div>
+          <div style="position:relative;height:340px"><canvas id="chartTicketCosto"></canvas></div>
         </div>
       </div>
 
@@ -981,25 +1047,39 @@ const DATA_FARM = [
   { nombre:'Cali Unicentro',        ciudad:'Cali',          total:882,  ep:94.6, cp:99.8, np:5.4, ticket:176 },
 ];
 
-// DATA_TICKET: datos reales del Excel — v = [ENERO,FEBRERO,MARZO,ABRIL,MAYO] servicios reales
-// var = variación MARZO→ABRIL (mes pico vs siguiente)
-const DATA_TICKET = [
-  { nombre:'Plaza de las Américas', short:'P. Américas',  v:[385,347,442,376,151], total:1701, avg:340, var:-15 },
-  { nombre:'Heel 125',              short:'Heel 125',     v:[332,301,439,339,116], total:1527, avg:305, var:-23 },
-  { nombre:'Marly',                 short:'Marly',        v:[289,302,361,338,125], total:1415, avg:283, var:-6  },
-  { nombre:'Country',               short:'Country',      v:[317,283,370,295,125], total:1390, avg:278, var:-20 },
-  { nombre:'Cali Palmetto',         short:'Cali Palm.',   v:[315,272,357,263,83],  total:1290, avg:258, var:-26 },
-  { nombre:'Salitre',               short:'Salitre',      v:[204,224,356,284,101], total:1169, avg:234, var:-20 },
-  { nombre:'Oviedo',                short:'Oviedo',       v:[225,239,276,271,91],  total:1102, avg:220, var:-2  },
-  { nombre:'Vegas',                 short:'Vegas',        v:[221,225,280,239,85],  total:1050, avg:210, var:-15 },
-  { nombre:'Norte 104',             short:'Norte 104',    v:[241,233,295,202,78],  total:1049, avg:210, var:-32 },
-  { nombre:'Dep. Almacentro',       short:'Almacentro',   v:[221,216,269,233,74],  total:1013, avg:203, var:-13 },
-  { nombre:'Barranquilla Ppal.',    short:'Bquilla Ppal.',v:[201,186,250,239,86],  total:962,  avg:192, var:-4  },
-  { nombre:'Cartagena',             short:'Cartagena',    v:[234,178,254,218,73],  total:957,  avg:191, var:-14 },
-  { nombre:'Cali Chipichape',       short:'Chipichape',   v:[214,174,232,232,79],  total:931,  avg:186, var:0   },
-  { nombre:'Mall 138',              short:'Mall 138',     v:[212,193,245,172,65],  total:887,  avg:177, var:-30 },
-  { nombre:'Cali Unicentro',        short:'Unicentro',    v:[189,160,242,219,72],  total:882,  avg:176, var:-10 },
+// DATA_TICKET_FULL: datos reales con servicios (sv) y ticket promedio en $ (tv) por mes
+// sv = servicios, tv = ticket valor ($COP), costo = costo mensajero mensual
+const DATA_TICKET_FULL = [
+  { clas:"PUNTO",    nombre:"Droguería HEEL Chía",          short:"Chía",             ciudad:"CHIA",         mensajeros:1,   costo:3043467,  sv:[117,124,158,143,83],  tv:[26013,24544,19262,21283,36668], total:625,  avgS:125, avgT:25554, var:-9  },
+  { clas:"PUNTO",    nombre:"HEEL Farmacia Manizales",       short:"Manizales",        ciudad:"MANIZALES",    mensajeros:1,   costo:3043467,  sv:[78,62,70,59,76],      tv:[39019,49088,43478,51584,40046], total:345,  avgS:69,  avgT:44643, var:-16 },
+  { clas:"PUNTO",    nombre:"HEEL Farmacia Neiva",           short:"Neiva",            ciudad:"NEIVA",        mensajeros:1,   costo:3043467,  sv:[115,88,119,109,80],   tv:[26465,34585,25575,27922,38043], total:511,  avgS:102, avgT:30518, var:-8  },
+  { clas:"PUNTO",    nombre:"HEEL Farmacia Tunja",           short:"Tunja",            ciudad:"TUNJA",        mensajeros:1,   costo:3043467,  sv:[104,83,118,88,67],    tv:[29264,36668,25792,34585,45425], total:460,  avgS:92,  avgT:34347, var:-25 },
+  { clas:"NODO",     nombre:"HEEL Farmacia Country",         short:"Country",          ciudad:"BOGOTA",       mensajeros:1.5, costo:6997086,  sv:[317,283,370,295,244], tv:[22073,24725,18911,23719,28677], total:1509, avgS:302, avgT:23621, var:-20 },
+  { clas:"NODO",     nombre:"HEEL Farmacia Marly",           short:"Marly",            ciudad:"BOGOTA",       mensajeros:1.5, costo:6997086,  sv:[289,302,361,338,255], tv:[24211,23169,19383,20701,27440], total:1545, avgS:309, avgT:22981, var:-6  },
+  { clas:"NODO",     nombre:"HEEL Farmacia 125",             short:"Heel 125",         ciudad:"BOGOTA",       mensajeros:1.5, costo:6997086,  sv:[332,301,439,339,253], tv:[21076,23246,15939,20640,27656], total:1664, avgS:333, avgT:21711, var:-23 },
+  { clas:"NODO",     nombre:"HEEL Farmacia Norte 104",       short:"Norte 104",        ciudad:"BOGOTA",       mensajeros:1.5, costo:6997086,  sv:[241,233,295,202,165], tv:[29034,30030,23719,34639,42407], total:1136, avgS:227, avgT:31966, var:-32 },
+  { clas:"NODO",     nombre:"HEEL Farmacia Plaza Américas",  short:"Plaza Américas",   ciudad:"BOGOTA",       mensajeros:2.5, costo:11661810, sv:[385,347,442,376,292], tv:[30290,33608,26384,31015,39938], total:1842, avgS:368, avgT:32247, var:-15 },
+  { clas:"NODO",     nombre:"HEEL Farmacia Salitre",         short:"Salitre",          ciudad:"BOGOTA",       mensajeros:1.5, costo:6997086,  sv:[204,224,356,284,220], tv:[34299,31237,19655,24638,31805], total:1288, avgS:258, avgT:28327, var:-20 },
+  { clas:"DEPOSITO", nombre:"HEEL Depósito Almacentro",      short:"Almacentro",       ciudad:"MEDELLIN",     mensajeros:1,   costo:4664724,  sv:[221,216,269,233,168], tv:[21107,21596,17341,20020,27766], total:1107, avgS:221, avgT:21566, var:-13 },
+  { clas:"PUNTO",    nombre:"HEEL Farmacia Autopista 184",   short:"Autopista 184",    ciudad:"BOGOTA",       mensajeros:1,   costo:4664724,  sv:[183,176,234,159,135], tv:[25490,26504,19935,29338,34554], total:887,  avgS:177, avgT:27164, var:-32 },
+  { clas:"PUNTO",    nombre:"HEEL Farmacia Bquilla Milenium",short:"Bquilla Milenium", ciudad:"BARRANQUILLA", mensajeros:1,   costo:4664724,  sv:[160,130,132,152,124], tv:[29155,35882,35339,30689,37619], total:698,  avgS:140, avgT:33737, var:15  },
+  { clas:"PUNTO",    nombre:"HEEL Farmacia Bquilla Principal",short:"Bquilla Principal",ciudad:"BARRANQUILLA", mensajeros:1,  costo:4664724,  sv:[201,186,250,239,158], tv:[23208,25079,18659,19518,29524], total:1034, avgS:207, avgT:23198, var:-4  },
+  { clas:"PUNTO",    nombre:"HEEL Farmacia Bucaramanga",     short:"Bucaramanga",      ciudad:"BUCARAMANGA",  mensajeros:1,   costo:4664724,  sv:[124,105,142,121,109], tv:[37619,44426,32850,38551,42796], total:601,  avgS:120, avgT:39248, var:-15 },
+  { clas:"PUNTO",    nombre:"HEEL Farmacia Cali Chipichape", short:"Cali Chipichape",  ciudad:"CALI",         mensajeros:1,   costo:4664724,  sv:[214,174,232,232,168], tv:[21798,26809,20107,20107,27766], total:1020, avgS:204, avgT:23317, var:0   },
+  { clas:"PUNTO",    nombre:"HEEL Farmacia Cali Palmetto",   short:"Cali Palmetto",    ciudad:"CALI",         mensajeros:1,   costo:4664724,  sv:[315,272,357,263,210], tv:[14809,17150,13066,17737,22213], total:1417, avgS:283, avgT:16995, var:-26 },
+  { clas:"PUNTO",    nombre:"HEEL Farmacia Cali Unicentro",  short:"Cali Unicentro",   ciudad:"CALI",         mensajeros:1,   costo:4664724,  sv:[189,160,242,219,153], tv:[24681,29155,19276,21300,30488], total:963,  avgS:193, avgT:24980, var:-10 },
+  { clas:"PUNTO",    nombre:"HEEL Farmacia Cartagena",       short:"Cartagena",        ciudad:"CARTAGENA",    mensajeros:1,   costo:4664724,  sv:[234,178,254,218,162], tv:[19935,26206,18365,21398,28795], total:1046, avgS:209, avgT:22940, var:-14 },
+  { clas:"PUNTO",    nombre:"HEEL Farmacia Ibagué",          short:"Ibagué",           ciudad:"IBAGUE",       mensajeros:1,   costo:4664724,  sv:[167,142,185,145,114], tv:[27932,32850,25215,32171,40919], total:753,  avgS:151, avgT:31817, var:-22 },
+  { clas:"PUNTO",    nombre:"HEEL Farmacia Mall 138",        short:"Mall 138",         ciudad:"BOGOTA",       mensajeros:1,   costo:4664724,  sv:[212,193,245,172,127], tv:[22003,24170,19040,27120,36730], total:949,  avgS:190, avgT:25813, var:-30 },
+  { clas:"PUNTO",    nombre:"HEEL Farmacia Montería",        short:"Montería",         ciudad:"MONTERIA",     mensajeros:1,   costo:4664724,  sv:[106,113,119,92,91],   tv:[44007,41281,39199,50704,51261], total:521,  avgS:104, avgT:45290, var:-23 },
+  { clas:"PUNTO",    nombre:"HEEL Farmacia Oviedo",          short:"Oviedo",           ciudad:"MEDELLIN",     mensajeros:1,   costo:4664724,  sv:[225,239,276,271,204], tv:[20732,19518,16901,17213,22866], total:1215, avgS:243, avgT:19446, var:-2  },
+  { clas:"PUNTO",    nombre:"HEEL Farmacia Pereira",         short:"Pereira",          ciudad:"PEREIRA",      mensajeros:1,   costo:4664724,  sv:[193,181,235,173,127], tv:[24170,25772,19850,26964,36730], total:909,  avgS:182, avgT:26697, var:-26 },
+  { clas:"PUNTO",    nombre:"HEEL Farmacia Vegas",           short:"Vegas",            ciudad:"MEDELLIN",     mensajeros:1,   costo:4664724,  sv:[221,225,280,239,181], tv:[21107,20732,16660,19518,25772], total:1146, avgS:229, avgT:20758, var:-15 },
 ];
+// Keep old DATA_TICKET for backward-compat references
+const DATA_TICKET = DATA_TICKET_FULL.filter(f=>f.total>=800).sort((a,b)=>b.total-a.total).map(f=>({
+  nombre:f.short, v:f.sv, total:f.total, avg:f.avgS, var:f.var
+}));
 
 const NOV_DATA = [
   { nombre:'Error en creación',    v:412 },
@@ -1541,85 +1621,191 @@ function renderChartFarmBar() {
    PANEL TICKET
 ═══════════════════════════════════════ */
 function renderTicketTable() {
-  // Highlight thresholds based on max value in dataset
-  const allVals = DATA_TICKET.flatMap(f => f.v);
-  const maxVal  = Math.max(...allVals);
-  const hi = maxVal * 0.75, mid = maxVal * 0.50;
+  const clasifF = document.getElementById('ticketFiltroClasif')?.value || 'TODOS';
+  const ciudadF = document.getElementById('ticketFiltroCiudad')?.value || 'TODAS';
 
-  // Month totals row
-  const monthTotals = [0,1,2,3,4].map(i => DATA_TICKET.reduce((s,f)=>s+f.v[i],0));
-  const grandTotal  = DATA_TICKET.reduce((s,f)=>s+f.total,0);
-  const grandAvg    = Math.round(grandTotal / DATA_TICKET.length / 5);
+  let data = DATA_TICKET_FULL;
+  if(clasifF !== 'TODOS') data = data.filter(f => f.clas === clasifF);
+  if(ciudadF !== 'TODAS') data = data.filter(f => f.ciudad === ciudadF);
 
-  document.getElementById('ticketTbody').innerHTML = DATA_TICKET.map((f, idx) => {
-    // Var: Marzo→Abril (mes pico al siguiente)
-    const varPct  = f.var;
-    const varCls  = varPct > 0 ? 'var-pos' : varPct < 0 ? 'var-neg' : '';
-    const varTxt  = varPct > 0 ? `▲ ${varPct}%` : varPct < 0 ? `▼ ${Math.abs(varPct)}%` : `— 0%`;
+  // Max service value for mini bar scaling
+  const maxSv = Math.max(...data.flatMap(f => f.sv));
 
-    // Sparkline: mini inline bar for trend
-    const maxF = Math.max(...f.v);
-    const spark = f.v.map(v => {
-      const w = Math.round(v/maxF*28);
-      const c = v>=hi?'#00C853':v>=mid?'#FFB300':'#4A566E';
-      return `<span style="display:inline-block;width:${w}px;height:8px;background:${c};border-radius:1px;margin-right:1px;vertical-align:middle"></span>`;
+  // Format COP
+  const cop = v => '$' + v.toLocaleString('es-CO');
+
+  // Clasif badge colors
+  const clasBg = { NODO:'rgba(255,179,0,0.12)', DEPOSITO:'rgba(0,172,193,0.12)', PUNTO:'rgba(96,165,250,0.08)' };
+  const clasCl = { NODO:'#FFB300', DEPOSITO:'#00ACC1', PUNTO:'#60A5FA' };
+  const clasNm = { NODO:f=>`NODO ${f.mensajeros}`, DEPOSITO:'DEPÓSITO', PUNTO:'PUNTO' };
+
+  // Totals
+  const totSv   = [0,1,2,3,4].map(i => data.reduce((s,f)=>s+f.sv[i],0));
+  const totTv   = [0,1,2,3,4].map(i => {
+    const w = data.reduce((s,f)=>s+f.sv[i],0);
+    return w > 0 ? Math.round(data.reduce((s,f)=>s+f.tv[i]*f.sv[i],0)/w) : 0;
+  });
+  const grandTotal = data.reduce((s,f)=>s+f.total,0);
+  const grandAvgT  = Math.round(data.reduce((s,f)=>s+f.avgT,0)/data.length);
+
+  document.getElementById('ticketTbody').innerHTML = data.map(f => {
+    const varPct = f.var;
+    const varCls = varPct > 0 ? '#00C853' : varPct < 0 ? '#F44336' : 'var(--txt-muted)';
+    const varTxt = varPct > 0 ? `▲ ${varPct}%` : varPct < 0 ? `▼ ${Math.abs(varPct)}%` : `— 0%`;
+
+    // Mini sparkline for services
+    const maxF = Math.max(...f.sv);
+    const spark = f.sv.map(v => {
+      const w = Math.round(v/maxF*24);
+      const c = v===maxF?'#1976D2':'#4A566E';
+      return `<span style="display:inline-block;width:${w}px;height:6px;background:${c};border-radius:1px;margin-right:1px;vertical-align:middle"></span>`;
     }).join('');
 
-    const cells = f.v.map((v,mi) => {
-      const c   = v>=hi?'#00C853':v>=mid?'#FFB300':'var(--txt-secondary)';
-      // mini trend indicator vs previous month
-      const prev = mi > 0 ? f.v[mi-1] : null;
-      const trend = prev !== null
-        ? `<span style="font-size:9px;color:${v>=prev?'#00C853':'#F44336'};margin-left:3px">${v>=prev?'↑':'↓'}</span>`
+    // Build month cells: each month has 2 cols (srv + ticket)
+    const monthCells = f.sv.map((sv, mi) => {
+      const tv = f.tv[mi];
+      const prevSv = mi > 0 ? f.sv[mi-1] : null;
+      const trend = prevSv !== null
+        ? `<span style="font-size:8px;color:${sv>=prevSv?'#00C853':'#F44336'};margin-left:2px">${sv>=prevSv?'↑':'↓'}</span>`
         : '';
-      return `<td class="ticket-cell" style="color:${c}">${v}${trend}</td>`;
+      // Ticket color: lower = more costly per service? No, higher ticket = better revenue. 
+      // Use green = high ticket (expensive med), we just show the value neutrally
+      const tickCol = tv >= 35000 ? '#00C853' : tv >= 25000 ? '#FFB300' : 'var(--txt-secondary)';
+      return `
+        <td style="text-align:center;padding:7px 6px;border-bottom:1px solid var(--border);font-family:var(--font-mono);font-size:12px;color:var(--txt-primary)">${sv}${trend}</td>
+        <td style="text-align:center;padding:7px 6px;border-bottom:1px solid var(--border);font-family:var(--font-mono);font-size:11px;color:${tickCol}">${cop(tv)}</td>`;
     }).join('');
 
-    // Row background accent for top 3
-    const rowStyle = idx < 3 ? 'style="background:rgba(21,101,192,0.04)"' : '';
+    const rowBg = f.clas==='NODO' ? 'background:rgba(255,179,0,0.03)' : '';
 
     return `
-      <tr ${rowStyle}>
-        <td>
+      <tr style="${rowBg}">
+        <td style="padding:8px 12px;border-bottom:1px solid var(--border)">
           <div style="display:flex;flex-direction:column;gap:3px">
             <span style="color:var(--txt-primary);font-weight:500;font-size:12px">${f.nombre}</span>
-            <span style="display:flex;gap:1px;margin-top:1px">${spark}</span>
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="font-size:10px;color:var(--txt-muted)">${f.ciudad.charAt(0)+f.ciudad.slice(1).toLowerCase()}</span>
+              <span style="display:flex;gap:1px">${spark}</span>
+            </div>
           </div>
         </td>
-        ${cells}
-        <td class="ticket-cell" style="color:var(--txt-primary);font-weight:600;font-size:13px">${fmt(f.total)}</td>
-        <td class="ticket-cell" style="color:#00C853;font-weight:600">${f.avg}</td>
-        <td class="ticket-cell"><span class="${varCls}" style="font-size:11px">${varTxt}</span></td>
+        <td style="padding:7px 10px;border-bottom:1px solid var(--border);text-align:center">
+          <span style="font-size:10px;font-family:var(--font-mono);padding:2px 7px;border-radius:12px;font-weight:500;background:${clasBg[f.clas]||'transparent'};color:${clasCl[f.clas]||'var(--txt-muted)'};border:1px solid ${clasCl[f.clas]||'transparent'}22;white-space:nowrap">
+            ${typeof clasNm[f.clas]==='function'?clasNm[f.clas](f):clasNm[f.clas]}
+          </span>
+        </td>
+        <td style="padding:7px 10px;border-bottom:1px solid var(--border);text-align:right;font-family:var(--font-mono);font-size:11px;color:var(--txt-secondary);white-space:nowrap">${cop(f.costo)}</td>
+        ${monthCells}
+        <td style="text-align:center;padding:7px 10px;border-bottom:1px solid var(--border);font-family:var(--font-mono);font-weight:700;color:var(--txt-primary)">${fmt(f.total)}</td>
+        <td style="text-align:center;padding:7px 10px;border-bottom:1px solid var(--border);font-family:var(--font-mono);color:#00C853;font-weight:600">${cop(f.avgT)}</td>
+        <td style="text-align:center;padding:7px 10px;border-bottom:1px solid var(--border);font-family:var(--font-mono);font-size:11px;color:${varCls}">${varTxt}</td>
       </tr>`;
   }).join('') +
-  // Totals footer row
-  `<tr style="background:var(--bg-card2);border-top:1px solid var(--border3)">
-    <td style="color:var(--txt-muted);font-size:11px;font-family:var(--font-mono);font-weight:500">TOTAL MESES</td>
-    ${monthTotals.map(t=>`<td class="ticket-cell" style="color:var(--txt-primary);font-weight:600">${fmt(t)}</td>`).join('')}
-    <td class="ticket-cell" style="color:var(--txt-accent);font-weight:700;font-size:13px">${fmt(grandTotal)}</td>
-    <td class="ticket-cell" style="color:var(--txt-muted)">${grandAvg}</td>
+  // Totals footer
+  `<tr style="background:var(--bg-card2);border-top:2px solid var(--border3)">
+    <td colspan="3" style="padding:8px 12px;color:var(--txt-muted);font-family:var(--font-mono);font-size:11px;font-weight:600">TOTALES / PROMEDIO PONDERADO</td>
+    ${totSv.map((sv,i)=>`
+      <td style="text-align:center;padding:8px 6px;font-family:var(--font-mono);font-weight:700;color:var(--txt-accent)">${sv}</td>
+      <td style="text-align:center;padding:8px 6px;font-family:var(--font-mono);font-size:11px;color:var(--clr-warn)">${cop(totTv[i])}</td>
+    `).join('')}
+    <td style="text-align:center;padding:8px 10px;font-family:var(--font-mono);font-weight:700;color:var(--txt-accent);font-size:13px">${fmt(grandTotal)}</td>
+    <td style="text-align:center;padding:8px 10px;font-family:var(--font-mono);color:#00C853;font-weight:600">${cop(grandAvgT)}</td>
     <td></td>
   </tr>`;
 }
 
 function renderChartTicket() {
   if(charts.ticket) charts.ticket.destroy();
+  if(charts.ticketCosto) charts.ticketCosto.destroy();
+
   const isDark = document.documentElement.dataset.theme==='dark';
   const tc = isDark ? '#4A566E' : '#9BA8BE';
   const gc = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
-  const top8 = DATA_TICKET.slice(0,8);
-  const colors = ['#1565C0','#1976D2','#1E88E5','#42A5F5','#00897B','#00ACC1','#26C6DA','#80DEEA'];
+
+  // Top 8 by total services for bar chart
+  const top8 = [...DATA_TICKET_FULL].sort((a,b)=>b.total-a.total).slice(0,8);
+  const colors8 = ['#1565C0','#1976D2','#1E88E5','#42A5F5','#00897B','#00ACC1','#26C6DA','#80DEEA'];
 
   charts.ticket = new Chart(document.getElementById('chartTicketBar'), {
     type:'bar',
-    data:{ labels:ML, datasets: top8.map((f,i)=>({
-      label:f.nombre, data:f.v, backgroundColor:colors[i]+'CC', borderRadius:3
-    }))},
-    options:{ responsive:true,maintainAspectRatio:false,
-      plugins:{ legend:{labels:{color:tc,font:{size:10,family:'IBM Plex Mono'},boxWidth:10}} },
+    data:{
+      labels: ML,
+      datasets: top8.map((f,i)=>({
+        label: f.short,
+        data: f.sv,
+        backgroundColor: colors8[i]+'CC',
+        borderColor: colors8[i],
+        borderWidth: 1,
+        borderRadius: 4,
+      }))
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{ labels:{ color:tc, font:{size:10,family:'IBM Plex Mono'}, boxWidth:10, padding:12 } },
+        tooltip:{ callbacks:{ label: ctx => ` ${ctx.dataset.label}: ${ctx.raw} servicios` } }
+      },
       scales:{
-        x:{ticks:{color:tc,font:{size:11}},grid:{display:false}},
-        y:{ticks:{color:tc,font:{size:11,family:'IBM Plex Mono'}},grid:{color:gc}}
+        x:{ ticks:{color:tc,font:{size:11}}, grid:{display:false} },
+        y:{ ticks:{color:tc,font:{size:11,family:'IBM Plex Mono'}}, grid:{color:gc},
+            title:{display:true,text:'Servicios',color:tc,font:{size:10}} }
+      }
+    }
+  });
+
+  // Ticket cost chart — all 25 points, horizontal, sorted by avgT
+  const sorted = [...DATA_TICKET_FULL].sort((a,b) => b.avgT - a.avgT);
+  const avgTvals = sorted.map(f => f.avgT);
+  const maxT = Math.max(...avgTvals), minT = Math.min(...avgTvals);
+  const tickColors = avgTvals.map(v => {
+    const ratio = (v - minT) / (maxT - minT);
+    if(ratio >= 0.66) return '#F44336CC';
+    if(ratio >= 0.33) return '#FFB300CC';
+    return '#00C853CC';
+  });
+
+  // value label plugin
+  const labPlugin = {
+    id:'tLabels',
+    afterDatasetsDraw(chart){
+      const{ctx}=chart; const meta=chart.getDatasetMeta(0);
+      chart.data.datasets[0].data.forEach((val,i)=>{
+        const bar=meta.data[i]; if(!bar) return;
+        ctx.save();
+        ctx.font=`400 10px "IBM Plex Mono"`;
+        ctx.fillStyle=isDark?'#8B9AB8':'#4A5B76';
+        ctx.textAlign='left'; ctx.textBaseline='middle';
+        ctx.fillText(`$${(val/1000).toFixed(0)}k`, bar.x+6, bar.y);
+        ctx.restore();
+      });
+    }
+  };
+
+  charts.ticketCosto = new Chart(document.getElementById('chartTicketCosto'), {
+    type:'bar', indexAxis:'y',
+    data:{
+      labels: sorted.map(f=>f.short),
+      datasets:[{
+        label:'Ticket Prom. ($)',
+        data: avgTvals,
+        backgroundColor: tickColors,
+        borderRadius: 4,
+      }]
+    },
+    plugins:[labPlugin],
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      layout:{ padding:{ right: 60 } },
+      plugins:{
+        legend:{display:false},
+        tooltip:{ callbacks:{ label: ctx => ` $${ctx.raw.toLocaleString('es-CO')} por servicio` } }
+      },
+      scales:{
+        x:{
+          ticks:{callback:v=>'$'+Math.round(v/1000)+'k', color:tc, font:{size:10,family:'IBM Plex Mono'}},
+          grid:{color:gc}
+        },
+        y:{ ticks:{color:tc, font:{size:11,family:'IBM Plex Mono'}}, grid:{display:false} }
       }
     }
   });
