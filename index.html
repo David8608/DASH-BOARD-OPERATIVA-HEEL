@@ -849,13 +849,16 @@ table.dataTable tbody tr:last-child td { border-bottom: none !important; }
           <div class="chart-header">
             <div>
               <div class="chart-title">Volumen de Servicios por Farmacia por Mes</div>
-              <div class="chart-sub">Ticket promedio operativo — servicios gestionados por punto por mes</div>
+              <div class="chart-sub">Servicios gestionados (domicilios) por punto de venta · datos reales del sistema · Ene–May 2026</div>
+            </div>
+            <div class="section-actions">
+              <button class="export-btn excel-btn" onclick="exportTicketExcel()"><i class="fa-solid fa-file-excel"></i> Excel</button>
             </div>
           </div>
           <div style="overflow-x:auto">
             <table class="rank-table" id="ticketTable">
               <thead><tr>
-                <th>Farmacia</th>
+                <th style="min-width:180px">Farmacia <span style="color:var(--txt-muted);font-weight:400">+ tendencia</span></th>
                 <th style="text-align:center">Enero</th>
                 <th style="text-align:center">Febrero</th>
                 <th style="text-align:center">Marzo</th>
@@ -978,22 +981,24 @@ const DATA_FARM = [
   { nombre:'Cali Unicentro',        ciudad:'Cali',          total:882,  ep:94.6, cp:99.8, np:5.4, ticket:176 },
 ];
 
+// DATA_TICKET: datos reales del Excel — v = [ENERO,FEBRERO,MARZO,ABRIL,MAYO] servicios reales
+// var = variación MARZO→ABRIL (mes pico vs siguiente)
 const DATA_TICKET = [
-  { nombre:'Plaza de las Américas', v:[385,347,442,376,151], total:1701, avg:340 },
-  { nombre:'Heel 125',              v:[332,301,439,339,116], total:1527, avg:305 },
-  { nombre:'Marly',                 v:[289,302,361,338,125], total:1415, avg:283 },
-  { nombre:'Country',               v:[317,283,370,295,125], total:1390, avg:278 },
-  { nombre:'Cali Palmetto',         v:[315,272,357,263,83],  total:1290, avg:258 },
-  { nombre:'Salitre',               v:[204,224,356,284,101], total:1169, avg:234 },
-  { nombre:'Oviedo',                v:[225,239,276,271,91],  total:1102, avg:220 },
-  { nombre:'Vegas',                 v:[221,225,280,239,85],  total:1050, avg:210 },
-  { nombre:'Norte 104',             v:[241,233,295,202,78],  total:1049, avg:210 },
-  { nombre:'Dep. Almacentro',       v:[221,216,269,233,74],  total:1013, avg:203 },
-  { nombre:'Barranquilla Ppal.',    v:[201,186,250,239,86],  total:962,  avg:192 },
-  { nombre:'Cartagena',             v:[234,178,254,218,73],  total:957,  avg:191 },
-  { nombre:'Cali Chipichape',       v:[214,174,232,232,79],  total:931,  avg:186 },
-  { nombre:'Mall 138',              v:[212,193,245,172,65],  total:887,  avg:177 },
-  { nombre:'Cali Unicentro',        v:[189,160,242,219,72],  total:882,  avg:176 },
+  { nombre:'Plaza de las Américas', short:'P. Américas',  v:[385,347,442,376,151], total:1701, avg:340, var:-15 },
+  { nombre:'Heel 125',              short:'Heel 125',     v:[332,301,439,339,116], total:1527, avg:305, var:-23 },
+  { nombre:'Marly',                 short:'Marly',        v:[289,302,361,338,125], total:1415, avg:283, var:-6  },
+  { nombre:'Country',               short:'Country',      v:[317,283,370,295,125], total:1390, avg:278, var:-20 },
+  { nombre:'Cali Palmetto',         short:'Cali Palm.',   v:[315,272,357,263,83],  total:1290, avg:258, var:-26 },
+  { nombre:'Salitre',               short:'Salitre',      v:[204,224,356,284,101], total:1169, avg:234, var:-20 },
+  { nombre:'Oviedo',                short:'Oviedo',       v:[225,239,276,271,91],  total:1102, avg:220, var:-2  },
+  { nombre:'Vegas',                 short:'Vegas',        v:[221,225,280,239,85],  total:1050, avg:210, var:-15 },
+  { nombre:'Norte 104',             short:'Norte 104',    v:[241,233,295,202,78],  total:1049, avg:210, var:-32 },
+  { nombre:'Dep. Almacentro',       short:'Almacentro',   v:[221,216,269,233,74],  total:1013, avg:203, var:-13 },
+  { nombre:'Barranquilla Ppal.',    short:'Bquilla Ppal.',v:[201,186,250,239,86],  total:962,  avg:192, var:-4  },
+  { nombre:'Cartagena',             short:'Cartagena',    v:[234,178,254,218,73],  total:957,  avg:191, var:-14 },
+  { nombre:'Cali Chipichape',       short:'Chipichape',   v:[214,174,232,232,79],  total:931,  avg:186, var:0   },
+  { nombre:'Mall 138',              short:'Mall 138',     v:[212,193,245,172,65],  total:887,  avg:177, var:-30 },
+  { nombre:'Cali Unicentro',        short:'Unicentro',    v:[189,160,242,219,72],  total:882,  avg:176, var:-10 },
 ];
 
 const NOV_DATA = [
@@ -1295,23 +1300,99 @@ function renderScoreRows() {
 function renderChartTiempo() {
   if(charts.tiempo) charts.tiempo.destroy();
   const isDark = document.documentElement.dataset.theme==='dark';
-  const gc = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+  const gc = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)';
   const tc = isDark ? '#4A566E' : '#9BA8BE';
+
   const cities = Object.keys(DATA_CIUDAD);
-  const labels = cities.map(c=>c.charAt(0)+c.slice(1).toLowerCase());
-  const data   = cities.map(c=>DATA_CIUDAD[c].t);
-  const colors = data.map(v => bct(v)+'CC');
+  const labels = cities.map(c => c.charAt(0)+c.slice(1).toLowerCase());
+  const data   = cities.map(c => DATA_CIUDAD[c].t);
+  // Semaphore colors: verde ≤20, amarillo ≤28, rojo >28
+  const colors = data.map(v => v<=20 ? '#00C853' : v<=28 ? '#FFB300' : '#F44336');
+  // Meta line at 28 min
+  const META = 28;
+
+  // Custom plugin: draw value labels on top of bars
+  const datalabelsPlugin = {
+    id: 'valLabels',
+    afterDatasetsDraw(chart) {
+      const { ctx, scales: { x, y } } = chart;
+      chart.data.datasets[0].data.forEach((val, i) => {
+        const meta = chart.getDatasetMeta(0);
+        const bar  = meta.data[i];
+        if(!bar) return;
+        ctx.save();
+        ctx.font = `500 10px "IBM Plex Mono"`;
+        ctx.fillStyle = isDark ? '#EEF2FF' : '#0D1B2E';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(`${val}m`, bar.x, bar.y - 3);
+        ctx.restore();
+      });
+    }
+  };
 
   charts.tiempo = new Chart(document.getElementById('chartTiempo'), {
-    type:'bar',
-    data:{ labels, datasets:[{label:'T. Prom (min)', data, backgroundColor:colors, borderRadius:5}] },
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      indexAxis:'y',
-      plugins:{ legend:{display:false}, tooltip:{callbacks:{label:ctx=>` ${ctx.raw} min`}} },
-      scales:{
-        x:{ ticks:{callback:v=>v+' min',color:tc,font:{size:10,family:'IBM Plex Mono'}}, grid:{color:gc} },
-        y:{ ticks:{color:tc,font:{size:11,family:'IBM Plex Mono'}}, grid:{display:false} }
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'T. Prom (min)',
+          data,
+          backgroundColor: colors.map(c => c + 'CC'),
+          borderColor: colors,
+          borderWidth: 1,
+          borderRadius: { topLeft:5, topRight:5 },
+          borderSkipped: false,
+          order: 2,
+        },
+        {
+          // Meta line as scatter with line
+          type: 'line',
+          label: `Meta (${META} min)`,
+          data: labels.map(() => META),
+          borderColor: 'rgba(255,255,255,0.35)',
+          borderWidth: 1.5,
+          borderDash: [6,4],
+          pointRadius: 0,
+          fill: false,
+          tension: 0,
+          order: 1,
+        }
+      ]
+    },
+    plugins: [datalabelsPlugin],
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      layout: { padding: { top: 22 } },
+      plugins: {
+        legend: {
+          display: true,
+          labels: {
+            color: tc,
+            font: { size: 11, family: 'IBM Plex Mono' },
+            boxWidth: 20, boxHeight: 2,
+            filter: item => item.datasetIndex === 1,  // only show meta in legend
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: ctx => ctx.datasetIndex === 0
+              ? ` ${ctx.raw} min — ${ctx.raw<=20?'Óptimo ✓':ctx.raw<=28?'Normal ⚠':'Revisar ✗'}`
+              : ` Meta: ${META} min`,
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: tc, font: { size: 10, family: 'IBM Plex Mono' }, maxRotation: 35, minRotation: 20 },
+          grid: { display: false },
+        },
+        y: {
+          min: 0, max: 38,
+          ticks: { callback: v => v + ' m', color: tc, font: { size: 10, family: 'IBM Plex Mono' }, stepSize: 5 },
+          grid: { color: gc },
+        }
       }
     }
   });
@@ -1362,10 +1443,36 @@ function renderChartCiudad() {
   });
 
   charts.ciudadT = new Chart(document.getElementById('chartCiudadTiempo'), {
-    type:'bar', indexAxis:'y',
-    data:{ labels, datasets:[{ label:'Min', data:cities.map(c=>DATA_CIUDAD[c].t), backgroundColor:cities.map(c=>bct(DATA_CIUDAD[c].t)+'CC'), borderRadius:4 }] },
-    options:{ responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
-      scales:{ x:{ticks:{color:tc,font:{size:10,family:'IBM Plex Mono'}},grid:{color:gc}}, y:{ticks:{color:tc,font:{size:11,family:'IBM Plex Mono'}},grid:{display:false}} } }
+    type:'bar',
+    data:{
+      labels,
+      datasets:[
+        { label:'T. Prom (min)', data:cities.map(c=>DATA_CIUDAD[c].t), backgroundColor:cities.map(c=>bct(DATA_CIUDAD[c].t)+'CC'), borderColor:cities.map(c=>bct(DATA_CIUDAD[c].t)), borderWidth:1, borderRadius:{topLeft:5,topRight:5}, order:2 },
+        { type:'line', label:'Meta (28 min)', data:cities.map(()=>28), borderColor:'rgba(255,255,255,0.3)', borderWidth:1.5, borderDash:[6,4], pointRadius:0, fill:false, order:1 }
+      ]
+    },
+    plugins:[{
+      id:'vl2', afterDatasetsDraw(chart){
+        const isDk = document.documentElement.dataset.theme==='dark';
+        const{ctx}=chart; const meta=chart.getDatasetMeta(0);
+        chart.data.datasets[0].data.forEach((val,i)=>{
+          const bar=meta.data[i]; if(!bar) return;
+          ctx.save(); ctx.font='500 10px "IBM Plex Mono"';
+          ctx.fillStyle=isDk?'#EEF2FF':'#0D1B2E';
+          ctx.textAlign='center'; ctx.textBaseline='bottom';
+          ctx.fillText(`${val}m`, bar.x, bar.y-3); ctx.restore();
+        });
+      }
+    }],
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      layout:{padding:{top:20}},
+      plugins:{ legend:{display:false}, tooltip:{callbacks:{label:ctx=>` ${ctx.raw} min — ${ctx.raw<=20?'Óptimo':ctx.raw<=28?'Normal':'Revisar'}`}} },
+      scales:{
+        x:{ticks:{color:tc,font:{size:10,family:'IBM Plex Mono'},maxRotation:35,minRotation:20},grid:{display:false}},
+        y:{min:0,max:38,ticks:{callback:v=>v+'m',color:tc,font:{size:10,family:'IBM Plex Mono'},stepSize:5},grid:{color:gc}}
+      }
+    }
   });
 }
 
@@ -1434,22 +1541,65 @@ function renderChartFarmBar() {
    PANEL TICKET
 ═══════════════════════════════════════ */
 function renderTicketTable() {
-  document.getElementById('ticketTbody').innerHTML = DATA_TICKET.map(f => {
-    const varPct = Math.round((f.v[3]-f.v[2])/f.v[2]*100);
-    const varClass = varPct>=0?'var-pos':'var-neg';
-    const cells = f.v.map(v => {
-      const cls = v>=350?'ticket-hi':v>=250?'ticket-mid':'ticket-lo';
-      return `<td class="ticket-cell ${cls}">${v}</td>`;
+  // Highlight thresholds based on max value in dataset
+  const allVals = DATA_TICKET.flatMap(f => f.v);
+  const maxVal  = Math.max(...allVals);
+  const hi = maxVal * 0.75, mid = maxVal * 0.50;
+
+  // Month totals row
+  const monthTotals = [0,1,2,3,4].map(i => DATA_TICKET.reduce((s,f)=>s+f.v[i],0));
+  const grandTotal  = DATA_TICKET.reduce((s,f)=>s+f.total,0);
+  const grandAvg    = Math.round(grandTotal / DATA_TICKET.length / 5);
+
+  document.getElementById('ticketTbody').innerHTML = DATA_TICKET.map((f, idx) => {
+    // Var: Marzo→Abril (mes pico al siguiente)
+    const varPct  = f.var;
+    const varCls  = varPct > 0 ? 'var-pos' : varPct < 0 ? 'var-neg' : '';
+    const varTxt  = varPct > 0 ? `▲ ${varPct}%` : varPct < 0 ? `▼ ${Math.abs(varPct)}%` : `— 0%`;
+
+    // Sparkline: mini inline bar for trend
+    const maxF = Math.max(...f.v);
+    const spark = f.v.map(v => {
+      const w = Math.round(v/maxF*28);
+      const c = v>=hi?'#00C853':v>=mid?'#FFB300':'#4A566E';
+      return `<span style="display:inline-block;width:${w}px;height:8px;background:${c};border-radius:1px;margin-right:1px;vertical-align:middle"></span>`;
     }).join('');
+
+    const cells = f.v.map((v,mi) => {
+      const c   = v>=hi?'#00C853':v>=mid?'#FFB300':'var(--txt-secondary)';
+      // mini trend indicator vs previous month
+      const prev = mi > 0 ? f.v[mi-1] : null;
+      const trend = prev !== null
+        ? `<span style="font-size:9px;color:${v>=prev?'#00C853':'#F44336'};margin-left:3px">${v>=prev?'↑':'↓'}</span>`
+        : '';
+      return `<td class="ticket-cell" style="color:${c}">${v}${trend}</td>`;
+    }).join('');
+
+    // Row background accent for top 3
+    const rowStyle = idx < 3 ? 'style="background:rgba(21,101,192,0.04)"' : '';
+
     return `
-      <tr>
-        <td class="name-cell">${f.nombre}</td>
+      <tr ${rowStyle}>
+        <td>
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <span style="color:var(--txt-primary);font-weight:500;font-size:12px">${f.nombre}</span>
+            <span style="display:flex;gap:1px;margin-top:1px">${spark}</span>
+          </div>
+        </td>
         ${cells}
-        <td class="ticket-cell" style="color:var(--txt-primary);font-weight:600">${fmt(f.total)}</td>
-        <td class="ticket-cell ticket-hi">${f.avg}</td>
-        <td class="ticket-cell"><span class="${varClass}">${varPct>=0?'▲':'▼'} ${Math.abs(varPct)}%</span></td>
+        <td class="ticket-cell" style="color:var(--txt-primary);font-weight:600;font-size:13px">${fmt(f.total)}</td>
+        <td class="ticket-cell" style="color:#00C853;font-weight:600">${f.avg}</td>
+        <td class="ticket-cell"><span class="${varCls}" style="font-size:11px">${varTxt}</span></td>
       </tr>`;
-  }).join('');
+  }).join('') +
+  // Totals footer row
+  `<tr style="background:var(--bg-card2);border-top:1px solid var(--border3)">
+    <td style="color:var(--txt-muted);font-size:11px;font-family:var(--font-mono);font-weight:500">TOTAL MESES</td>
+    ${monthTotals.map(t=>`<td class="ticket-cell" style="color:var(--txt-primary);font-weight:600">${fmt(t)}</td>`).join('')}
+    <td class="ticket-cell" style="color:var(--txt-accent);font-weight:700;font-size:13px">${fmt(grandTotal)}</td>
+    <td class="ticket-cell" style="color:var(--txt-muted)">${grandAvg}</td>
+    <td></td>
+  </tr>`;
 }
 
 function renderChartTicket() {
@@ -1580,6 +1730,16 @@ function exportFarmaciasExcel() {
     csv += `${f.nombre},${f.ciudad},${f.total},${f.ep}%,${f.cp}%,${f.np}%,${f.ticket}\n`;
   });
   downloadFile(csv, 'farmacias_heel_2026.csv', 'text/csv');
+}
+
+function exportTicketExcel() {
+  let csv = 'Farmacia,Enero,Febrero,Marzo,Abril,Mayo,Total,Prom/Mes,Var Mar-Abr\n';
+  DATA_TICKET.forEach(f => {
+    csv += `${f.nombre},${f.v.join(',')},${f.total},${f.avg},${f.var}%\n`;
+  });
+  const totals = [0,1,2,3,4].map(i => DATA_TICKET.reduce((s,f)=>s+f.v[i],0));
+  csv += `TOTAL,${totals.join(',')},${DATA_TICKET.reduce((s,f)=>s+f.total,0)},,\n`;
+  downloadFile(csv, 'ticket_por_farmacia_2026.csv', 'text/csv');
 }
 
 function exportOpPDF() {
