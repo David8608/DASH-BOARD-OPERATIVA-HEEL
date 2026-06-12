@@ -1006,75 +1006,75 @@ const MO = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO'];
 const ML = ['Ene','Feb','Mar','Abr','May'];
 
 const DATA_MES = {
-  ENERO:   { prog:5200,  ejec:4960, novedad:148, cancel:39,  cumple:4819, cp:93.6, ep:96.4, tprom:27.2 },
-  FEBRERO: { prog:4800,  ejec:4555, novedad:153, cancel:30,  cumple:4512, cp:95.2, ep:96.1, tprom:25.1 },
-  MARZO:   { prog:6250,  ejec:5897, novedad:223, cancel:61,  cumple:5942, cp:96.1, ep:95.4, tprom:24.8 },
-  ABRIL:   { prog:5200,  ejec:4956, novedad:164, cancel:42,  cumple:4967, cp:96.2, ep:96.0, tprom:27.2 },
-  MAYO:    { prog:1900,  ejec:1802, novedad:70,  cancel:8,   cumple:1816, cp:96.6, ep:95.9, tprom:23.9 },
+  ENERO:   { prog:5147, ejec:5108, novedad:148, cancel:39, cumple:4819, cp:93.6, ep:96.4, tprom:27.8 },
+  FEBRERO: { prog:4738, ejec:4708, novedad:153, cancel:30, cumple:4512, cp:95.2, ep:96.1, tprom:25.5 },
+  MARZO:   { prog:6181, ejec:6120, novedad:223, cancel:61, cumple:5942, cp:96.1, ep:95.4, tprom:23.9 },
+  ABRIL:   { prog:5162, ejec:5120, novedad:164, cancel:42, cumple:4967, cp:96.2, ep:96.0, tprom:24.2 },
+  MAYO:    { prog:5043, ejec:5022, novedad:182, cancel:21, cumple:4866, cp:96.5, ep:96.0, tprom:24.4 },
 };
 
 const DATA_CIUDAD = {
-  BOGOTA:       { prog:10100, ejec:9566, nov:348, cancel:41, cumple:9302, ep:96.1, cp:93.4, t:30.2 },
-  MEDELLIN:     { prog:3200,  ejec:3023, nov:56,  cancel:87, cumple:2970, ep:95.5, cp:93.8, t:29.5 },
-  CALI:         { prog:3150,  ejec:2920, nov:157, cancel:26, cumple:3037, ep:94.1, cp:97.9, t:22.4 },
-  BARRANQUILLA: { prog:1620,  ejec:1510, nov:78,  cancel:7,  cumple:1580, ep:94.7, cp:99.1, t:19.3 },
-  CARTAGENA:    { prog:975,   ejec:924,  nov:32,  cancel:1,  cumple:912,  ep:96.6, cp:95.3, t:26.3 },
-  PEREIRA:      { prog:860,   ejec:826,  nov:14,  cancel:1,  cumple:810,  ep:98.2, cp:96.3, t:28.0 },
-  IBAGUE:       { prog:700,   ejec:691,  nov:1,   cancel:1,  cumple:673,  ep:99.7, cp:97.1, t:24.4 },
-  CHIA:         { prog:590,   ejec:569,  nov:3,   cancel:6,  cumple:555,  ep:98.4, cp:96.0, t:24.6 },
-  BUCARAMANGA:  { prog:556,   ejec:549,  nov:4,   cancel:1,  cumple:554,  ep:99.1, cp:100,  t:15.2 },
-  MONTERIA:     { prog:476,   ejec:464,  nov:10,  cancel:0,  cumple:471,  ep:97.9, cp:99.4, t:13.3 },
-  NEIVA:        { prog:470,   ejec:462,  nov:4,   cancel:2,  cumple:468,  ep:98.7, cp:100,  t:12.8 },
-  TUNJA:        { prog:430,   ejec:394,  nov:26,  cancel:5,  cumple:425,  ep:92.7, cp:100,  t:22.8 },
-  MANIZALES:    { prog:302,   ejec:272,  nov:25,  cancel:2,  cumple:299,  ep:91.0, cp:100,  t:9.5  },
+  BOGOTA:       { prog:11294, ejec:11251, nov:392, cancel:43, cumple:10579, ep:96.1, cp:93.7, t:28.0 },
+  MEDELLIN:     { prog:3631,  ejec:3536,  nov:64,  cancel:95, cumple:3411,  ep:95.6, cp:93.9, t:28.0 },
+  CALI:         { prog:3542,  ejec:3516,  nov:179, cancel:26, cumple:3462, ep:94.2, cp:97.7, t:21.7 },
+  BARRANQUILLA: { prog:1803,  ejec:1794,  nov:94,  cancel:9,  cumple:1787, ep:94.3, cp:99.1, t:18.3 },
+  CARTAGENA:    { prog:1087,  ejec:1086,  nov:36,  cancel:1,  cumple:1041, ep:96.6, cp:95.8, t:25.9 },
+  PEREIRA:      { prog:950,   ejec:949,   nov:14,  cancel:1,  cumple:915,  ep:98.4, cp:96.3, t:28.0 },
+  IBAGUE:       { prog:782,   ejec:781,   nov:1,   cancel:1,  cumple:759,  ep:99.7, cp:97.1, t:24.6 },
+  CHIA:         { prog:641,   ejec:635,   nov:4,   cancel:6,  cumple:615,  ep:98.4, cp:95.9, t:23.2 },
+  BUCARAMANGA:  { prog:620,   ejec:619,   nov:9,   cancel:1,  cumple:620,  ep:98.4, cp:100,  t:15.2 },
+  MONTERIA:     { prog:540,   ejec:540,   nov:11,  cancel:0,  cumple:536,  ep:98.0, cp:99.3, t:13.7 },
+  NEIVA:        { prog:535,   ejec:533,   nov:6,   cancel:2,  cumple:535,  ep:98.5, cp:100,  t:12.5 },
+  TUNJA:        { prog:481,   ejec:476,   nov:28,  cancel:5,  cumple:481,  ep:93.1, cp:100,  t:22.7 },
+  MANIZALES:    { prog:363,   ejec:360,   nov:31,  cancel:3,  cumple:363,  ep:90.6, cp:100,  t:9.6  },
 };
 
 const DATA_FARM = [
-  { nombre:'Plaza de las Américas', ciudad:'Bogotá',        total:1701, ep:96.4, cp:92.1, np:3.6, ticket:340 },
-  { nombre:'Heel 125',              ciudad:'Bogotá',        total:1527, ep:97.1, cp:97.3, np:2.9, ticket:305 },
-  { nombre:'Marly',                 ciudad:'Bogotá',        total:1415, ep:93.4, cp:89.4, np:6.6, ticket:283 },
-  { nombre:'Country',               ciudad:'Bogotá',        total:1390, ep:96.0, cp:88.6, np:4.0, ticket:278 },
-  { nombre:'Cali Palmetto',         ciudad:'Cali',          total:1290, ep:93.0, cp:95.1, np:7.0, ticket:258 },
-  { nombre:'Salitre',               ciudad:'Bogotá',        total:1169, ep:94.4, cp:98.3, np:5.6, ticket:234 },
-  { nombre:'Oviedo',                ciudad:'Medellín',      total:1102, ep:93.5, cp:98.1, np:3.7, ticket:220 },
-  { nombre:'Vegas',                 ciudad:'Medellín',      total:1050, ep:95.4, cp:98.1, np:2.7, ticket:210 },
-  { nombre:'Norte 104',             ciudad:'Bogotá',        total:1049, ep:96.9, cp:92.1, np:3.1, ticket:210 },
-  { nombre:'Dep. Almacentro',       ciudad:'Medellín',      total:1013, ep:97.8, cp:84.7, np:2.2, ticket:203 },
-  { nombre:'Barranquilla Ppal.',    ciudad:'Barranquilla',  total:962,  ep:95.3, cp:99.4, np:4.6, ticket:192 },
-  { nombre:'Cartagena',             ciudad:'Cartagena',     total:957,  ep:96.6, cp:95.3, np:3.4, ticket:191 },
-  { nombre:'Cali Chipichape',       ciudad:'Cali',          total:931,  ep:95.2, cp:99.9, np:4.7, ticket:186 },
-  { nombre:'Mall 138',              ciudad:'Bogotá',        total:887,  ep:98.4, cp:93.2, np:1.6, ticket:177 },
-  { nombre:'Cali Unicentro',        ciudad:'Cali',          total:882,  ep:94.6, cp:99.8, np:5.4, ticket:176 },
+  { nombre:'Plaza de las Américas', ciudad:'Bogotá',        total:1917, ep:96.6, cp:92.1, np:3.0, ticket:383 },
+  { nombre:'Heel 125',              ciudad:'Bogotá',        total:1741, ep:97.1, cp:97.4, np:2.7, ticket:348 },
+  { nombre:'Marly',                 ciudad:'Bogotá',        total:1607, ep:93.7, cp:90.2, np:6.0, ticket:321 },
+  { nombre:'Country',               ciudad:'Bogotá',        total:1580, ep:95.6, cp:89.5, np:4.1, ticket:316 },
+  { nombre:'Cali Palmetto',         ciudad:'Cali',          total:1481, ep:93.1, cp:95.0, np:6.3, ticket:296 },
+  { nombre:'Salitre',               ciudad:'Bogotá',        total:1336, ep:94.8, cp:98.4, np:4.6, ticket:267 },
+  { nombre:'Oviedo',                ciudad:'Medellín',      total:1284, ep:93.5, cp:98.4, np:2.3, ticket:257 },
+  { nombre:'Norte 104',             ciudad:'Bogotá',        total:1187, ep:97.0, cp:91.9, np:2.7, ticket:237 },
+  { nombre:'Vegas',                 ciudad:'Medellín',      total:1186, ep:95.5, cp:97.9, np:1.9, ticket:237 },
+  { nombre:'Dep. Almacentro',       ciudad:'Medellín',      total:1161, ep:98.0, cp:85.0, np:1.0, ticket:232 },
+  { nombre:'Cartagena',             ciudad:'Cartagena',     total:1087, ep:96.6, cp:95.8, np:3.3, ticket:217 },
+  { nombre:'Barranquilla Ppal.',    ciudad:'Barranquilla',  total:1066, ep:95.1, cp:99.4, np:4.4, ticket:213 },
+  { nombre:'Cali Chipichape',       ciudad:'Cali',          total:1063, ep:95.6, cp:99.9, np:3.1, ticket:213 },
+  { nombre:'Mall 138',              ciudad:'Bogotá',        total:1002, ep:98.5, cp:93.1, np:1.1, ticket:200 },
+  { nombre:'Cali Unicentro',        ciudad:'Cali',          total:998,  ep:94.4, cp:99.5, np:5.3, ticket:200 },
 ];
 
 // DATA_TICKET_FULL: datos reales con servicios (sv) y ticket promedio en $ (tv) por mes
 // sv = servicios, tv = ticket valor ($COP), costo = costo mensajero mensual
 const DATA_TICKET_FULL = [
-  { clas:"PUNTO",    nombre:"Droguería HEEL Chía",          short:"Chía",             ciudad:"CHIA",         mensajeros:1,   costo:3043467,  sv:[117,124,158,143,83],  tv:[26013,24544,19262,21283,36668], total:625,  avgS:125, avgT:25554, var:-9  },
-  { clas:"PUNTO",    nombre:"HEEL Farmacia Manizales",       short:"Manizales",        ciudad:"MANIZALES",    mensajeros:1,   costo:3043467,  sv:[78,62,70,59,76],      tv:[39019,49088,43478,51584,40046], total:345,  avgS:69,  avgT:44643, var:-16 },
-  { clas:"PUNTO",    nombre:"HEEL Farmacia Neiva",           short:"Neiva",            ciudad:"NEIVA",        mensajeros:1,   costo:3043467,  sv:[115,88,119,109,80],   tv:[26465,34585,25575,27922,38043], total:511,  avgS:102, avgT:30518, var:-8  },
-  { clas:"PUNTO",    nombre:"HEEL Farmacia Tunja",           short:"Tunja",            ciudad:"TUNJA",        mensajeros:1,   costo:3043467,  sv:[104,83,118,88,67],    tv:[29264,36668,25792,34585,45425], total:460,  avgS:92,  avgT:34347, var:-25 },
-  { clas:"NODO",     nombre:"HEEL Farmacia Country",         short:"Country",          ciudad:"BOGOTA",       mensajeros:1.5, costo:6997086,  sv:[317,283,370,295,244], tv:[22073,24725,18911,23719,28677], total:1509, avgS:302, avgT:23621, var:-20 },
-  { clas:"NODO",     nombre:"HEEL Farmacia Marly",           short:"Marly",            ciudad:"BOGOTA",       mensajeros:1.5, costo:6997086,  sv:[289,302,361,338,255], tv:[24211,23169,19383,20701,27440], total:1545, avgS:309, avgT:22981, var:-6  },
-  { clas:"NODO",     nombre:"HEEL Farmacia 125",             short:"Heel 125",         ciudad:"BOGOTA",       mensajeros:1.5, costo:6997086,  sv:[332,301,439,339,253], tv:[21076,23246,15939,20640,27656], total:1664, avgS:333, avgT:21711, var:-23 },
-  { clas:"NODO",     nombre:"HEEL Farmacia Norte 104",       short:"Norte 104",        ciudad:"BOGOTA",       mensajeros:1.5, costo:6997086,  sv:[241,233,295,202,165], tv:[29034,30030,23719,34639,42407], total:1136, avgS:227, avgT:31966, var:-32 },
-  { clas:"NODO",     nombre:"HEEL Farmacia Plaza Américas",  short:"Plaza Américas",   ciudad:"BOGOTA",       mensajeros:2.5, costo:11661810, sv:[385,347,442,376,292], tv:[30290,33608,26384,31015,39938], total:1842, avgS:368, avgT:32247, var:-15 },
-  { clas:"NODO",     nombre:"HEEL Farmacia Salitre",         short:"Salitre",          ciudad:"BOGOTA",       mensajeros:1.5, costo:6997086,  sv:[204,224,356,284,220], tv:[34299,31237,19655,24638,31805], total:1288, avgS:258, avgT:28327, var:-20 },
-  { clas:"DEPOSITO", nombre:"HEEL Depósito Almacentro",      short:"Almacentro",       ciudad:"MEDELLIN",     mensajeros:1,   costo:4664724,  sv:[221,216,269,233,168], tv:[21107,21596,17341,20020,27766], total:1107, avgS:221, avgT:21566, var:-13 },
-  { clas:"PUNTO",    nombre:"HEEL Farmacia Autopista 184",   short:"Autopista 184",    ciudad:"BOGOTA",       mensajeros:1,   costo:4664724,  sv:[183,176,234,159,135], tv:[25490,26504,19935,29338,34554], total:887,  avgS:177, avgT:27164, var:-32 },
-  { clas:"PUNTO",    nombre:"HEEL Farmacia Bquilla Milenium",short:"Bquilla Milenium", ciudad:"BARRANQUILLA", mensajeros:1,   costo:4664724,  sv:[160,130,132,152,124], tv:[29155,35882,35339,30689,37619], total:698,  avgS:140, avgT:33737, var:15  },
-  { clas:"PUNTO",    nombre:"HEEL Farmacia Bquilla Principal",short:"Bquilla Principal",ciudad:"BARRANQUILLA", mensajeros:1,  costo:4664724,  sv:[201,186,250,239,158], tv:[23208,25079,18659,19518,29524], total:1034, avgS:207, avgT:23198, var:-4  },
-  { clas:"PUNTO",    nombre:"HEEL Farmacia Bucaramanga",     short:"Bucaramanga",      ciudad:"BUCARAMANGA",  mensajeros:1,   costo:4664724,  sv:[124,105,142,121,109], tv:[37619,44426,32850,38551,42796], total:601,  avgS:120, avgT:39248, var:-15 },
-  { clas:"PUNTO",    nombre:"HEEL Farmacia Cali Chipichape", short:"Cali Chipichape",  ciudad:"CALI",         mensajeros:1,   costo:4664724,  sv:[214,174,232,232,168], tv:[21798,26809,20107,20107,27766], total:1020, avgS:204, avgT:23317, var:0   },
-  { clas:"PUNTO",    nombre:"HEEL Farmacia Cali Palmetto",   short:"Cali Palmetto",    ciudad:"CALI",         mensajeros:1,   costo:4664724,  sv:[315,272,357,263,210], tv:[14809,17150,13066,17737,22213], total:1417, avgS:283, avgT:16995, var:-26 },
-  { clas:"PUNTO",    nombre:"HEEL Farmacia Cali Unicentro",  short:"Cali Unicentro",   ciudad:"CALI",         mensajeros:1,   costo:4664724,  sv:[189,160,242,219,153], tv:[24681,29155,19276,21300,30488], total:963,  avgS:193, avgT:24980, var:-10 },
-  { clas:"PUNTO",    nombre:"HEEL Farmacia Cartagena",       short:"Cartagena",        ciudad:"CARTAGENA",    mensajeros:1,   costo:4664724,  sv:[234,178,254,218,162], tv:[19935,26206,18365,21398,28795], total:1046, avgS:209, avgT:22940, var:-14 },
-  { clas:"PUNTO",    nombre:"HEEL Farmacia Ibagué",          short:"Ibagué",           ciudad:"IBAGUE",       mensajeros:1,   costo:4664724,  sv:[167,142,185,145,114], tv:[27932,32850,25215,32171,40919], total:753,  avgS:151, avgT:31817, var:-22 },
-  { clas:"PUNTO",    nombre:"HEEL Farmacia Mall 138",        short:"Mall 138",         ciudad:"BOGOTA",       mensajeros:1,   costo:4664724,  sv:[212,193,245,172,127], tv:[22003,24170,19040,27120,36730], total:949,  avgS:190, avgT:25813, var:-30 },
-  { clas:"PUNTO",    nombre:"HEEL Farmacia Montería",        short:"Montería",         ciudad:"MONTERIA",     mensajeros:1,   costo:4664724,  sv:[106,113,119,92,91],   tv:[44007,41281,39199,50704,51261], total:521,  avgS:104, avgT:45290, var:-23 },
-  { clas:"PUNTO",    nombre:"HEEL Farmacia Oviedo",          short:"Oviedo",           ciudad:"MEDELLIN",     mensajeros:1,   costo:4664724,  sv:[225,239,276,271,204], tv:[20732,19518,16901,17213,22866], total:1215, avgS:243, avgT:19446, var:-2  },
-  { clas:"PUNTO",    nombre:"HEEL Farmacia Pereira",         short:"Pereira",          ciudad:"PEREIRA",      mensajeros:1,   costo:4664724,  sv:[193,181,235,173,127], tv:[24170,25772,19850,26964,36730], total:909,  avgS:182, avgT:26697, var:-26 },
-  { clas:"PUNTO",    nombre:"HEEL Farmacia Vegas",           short:"Vegas",            ciudad:"MEDELLIN",     mensajeros:1,   costo:4664724,  sv:[221,225,280,239,181], tv:[21107,20732,16660,19518,25772], total:1146, avgS:229, avgT:20758, var:-15 },
+  { clas:"PUNTO",    nombre:"Droguería HEEL Chía",          short:"Chía",             ciudad:"CHIA",         mensajeros:1,   costo:3043467,  sv:[117,124,158,143,99],  tv:[26013,24544,19262,21283,36668], total:641,  avgS:128, avgT:25554, var:-9  },
+  { clas:"PUNTO",    nombre:"HEEL Farmacia Manizales",       short:"Manizales",        ciudad:"MANIZALES",    mensajeros:1,   costo:3043467,  sv:[78,62,70,59,94],      tv:[39019,49088,43478,51584,40046], total:363,  avgS:73,  avgT:44643, var:-16 },
+  { clas:"PUNTO",    nombre:"HEEL Farmacia Neiva",           short:"Neiva",            ciudad:"NEIVA",        mensajeros:1,   costo:3043467,  sv:[115,88,119,109,104],  tv:[26465,34585,25575,27922,38043], total:535,  avgS:107, avgT:30518, var:-8  },
+  { clas:"PUNTO",    nombre:"HEEL Farmacia Tunja",           short:"Tunja",            ciudad:"TUNJA",        mensajeros:1,   costo:3043467,  sv:[104,83,118,88,88],    tv:[29264,36668,25792,34585,45425], total:481,  avgS:96,  avgT:34347, var:-25 },
+  { clas:"NODO",     nombre:"HEEL Farmacia Country",         short:"Country",          ciudad:"BOGOTA",       mensajeros:1.5, costo:6997086,  sv:[317,283,370,295,315], tv:[22073,24725,18911,23719,28677], total:1580, avgS:316, avgT:23621, var:-20 },
+  { clas:"NODO",     nombre:"HEEL Farmacia Marly",           short:"Marly",            ciudad:"BOGOTA",       mensajeros:1.5, costo:6997086,  sv:[289,302,361,338,317], tv:[24211,23169,19383,20701,27440], total:1607, avgS:321, avgT:22981, var:-6  },
+  { clas:"NODO",     nombre:"HEEL Farmacia 125",             short:"Heel 125",         ciudad:"BOGOTA",       mensajeros:1.5, costo:6997086,  sv:[332,301,439,339,330], tv:[21076,23246,15939,20640,27656], total:1741, avgS:348, avgT:21711, var:-23 },
+  { clas:"NODO",     nombre:"HEEL Farmacia Norte 104",       short:"Norte 104",        ciudad:"BOGOTA",       mensajeros:1.5, costo:6997086,  sv:[241,233,295,202,216], tv:[29034,30030,23719,34639,42407], total:1187, avgS:237, avgT:31966, var:-32 },
+  { clas:"NODO",     nombre:"HEEL Farmacia Plaza Américas",  short:"Plaza Américas",   ciudad:"BOGOTA",       mensajeros:2.5, costo:11661810, sv:[385,347,442,376,367], tv:[30290,33608,26384,31015,39938], total:1917, avgS:383, avgT:32247, var:-15 },
+  { clas:"NODO",     nombre:"HEEL Farmacia Salitre",         short:"Salitre",          ciudad:"BOGOTA",       mensajeros:1.5, costo:6997086,  sv:[204,224,356,284,268], tv:[34299,31237,19655,24638,31805], total:1336, avgS:267, avgT:28327, var:-20 },
+  { clas:"DEPOSITO", nombre:"HEEL Depósito Almacentro",      short:"Almacentro",       ciudad:"MEDELLIN",     mensajeros:1,   costo:4664724,  sv:[221,216,269,233,222], tv:[21107,21596,17341,20020,27766], total:1161, avgS:232, avgT:21566, var:-13 },
+  { clas:"PUNTO",    nombre:"HEEL Farmacia Autopista 184",   short:"Autopista 184",    ciudad:"BOGOTA",       mensajeros:1,   costo:4664724,  sv:[183,176,234,159,171], tv:[25490,26504,19935,29338,34554], total:923,  avgS:185, avgT:27164, var:-32 },
+  { clas:"PUNTO",    nombre:"HEEL Farmacia Bquilla Milenium",short:"Bquilla Milenium", ciudad:"BARRANQUILLA", mensajeros:1,   costo:4664724,  sv:[160,130,132,152,163], tv:[29155,35882,35339,30689,37619], total:737,  avgS:147, avgT:33737, var:15  },
+  { clas:"PUNTO",    nombre:"HEEL Farmacia Bquilla Principal",short:"Bquilla Principal",ciudad:"BARRANQUILLA", mensajeros:1,  costo:4664724,  sv:[201,186,250,239,190], tv:[23208,25079,18659,19518,29524], total:1066, avgS:213, avgT:23198, var:-4  },
+  { clas:"PUNTO",    nombre:"HEEL Farmacia Bucaramanga",     short:"Bucaramanga",      ciudad:"BUCARAMANGA",  mensajeros:1,   costo:4664724,  sv:[124,105,142,121,128], tv:[37619,44426,32850,38551,42796], total:620,  avgS:124, avgT:39248, var:-15 },
+  { clas:"PUNTO",    nombre:"HEEL Farmacia Cali Chipichape", short:"Cali Chipichape",  ciudad:"CALI",         mensajeros:1,   costo:4664724,  sv:[214,174,232,232,211], tv:[21798,26809,20107,20107,27766], total:1063, avgS:213, avgT:23317, var:0   },
+  { clas:"PUNTO",    nombre:"HEEL Farmacia Cali Palmetto",   short:"Cali Palmetto",    ciudad:"CALI",         mensajeros:1,   costo:4664724,  sv:[315,272,357,263,274], tv:[14809,17150,13066,17737,22213], total:1481, avgS:296, avgT:16995, var:-26 },
+  { clas:"PUNTO",    nombre:"HEEL Farmacia Cali Unicentro",  short:"Cali Unicentro",   ciudad:"CALI",         mensajeros:1,   costo:4664724,  sv:[189,160,242,219,188], tv:[24681,29155,19276,21300,30488], total:998,  avgS:200, avgT:24980, var:-10 },
+  { clas:"PUNTO",    nombre:"HEEL Farmacia Cartagena",       short:"Cartagena",        ciudad:"CARTAGENA",    mensajeros:1,   costo:4664724,  sv:[234,178,254,218,203], tv:[19935,26206,18365,21398,28795], total:1087, avgS:217, avgT:22940, var:-14 },
+  { clas:"PUNTO",    nombre:"HEEL Farmacia Ibagué",          short:"Ibagué",           ciudad:"IBAGUE",       mensajeros:1,   costo:4664724,  sv:[167,142,185,145,143], tv:[27932,32850,25215,32171,40919], total:782,  avgS:156, avgT:31817, var:-22 },
+  { clas:"PUNTO",    nombre:"HEEL Farmacia Mall 138",        short:"Mall 138",         ciudad:"BOGOTA",       mensajeros:1,   costo:4664724,  sv:[212,193,245,172,180], tv:[22003,24170,19040,27120,36730], total:1002, avgS:200, avgT:25813, var:-30 },
+  { clas:"PUNTO",    nombre:"HEEL Farmacia Montería",        short:"Montería",         ciudad:"MONTERIA",     mensajeros:1,   costo:4664724,  sv:[106,113,119,92,110],  tv:[44007,41281,39199,50704,51261], total:540,  avgS:108, avgT:45290, var:-23 },
+  { clas:"PUNTO",    nombre:"HEEL Farmacia Oviedo",          short:"Oviedo",           ciudad:"MEDELLIN",     mensajeros:1,   costo:4664724,  sv:[225,239,276,271,273], tv:[20732,19518,16901,17213,22866], total:1284, avgS:257, avgT:19446, var:-2  },
+  { clas:"PUNTO",    nombre:"HEEL Farmacia Pereira",         short:"Pereira",          ciudad:"PEREIRA",      mensajeros:1,   costo:4664724,  sv:[193,181,235,173,168], tv:[24170,25772,19850,26964,36730], total:950,  avgS:190, avgT:26697, var:-26 },
+  { clas:"PUNTO",    nombre:"HEEL Farmacia Vegas",           short:"Vegas",            ciudad:"MEDELLIN",     mensajeros:1,   costo:4664724,  sv:[221,225,280,239,221], tv:[21107,20732,16660,19518,25772], total:1186, avgS:237, avgT:20758, var:-15 },
 ];
 // Keep old DATA_TICKET for backward-compat references
 const DATA_TICKET = DATA_TICKET_FULL.filter(f=>f.total>=800).sort((a,b)=>b.total-a.total).map(f=>({
@@ -1082,16 +1082,16 @@ const DATA_TICKET = DATA_TICKET_FULL.filter(f=>f.total>=800).sort((a,b)=>b.total
 }));
 
 const NOV_DATA = [
-  { nombre:'Error en creación',    v:412 },
-  { nombre:'Cliente ausente',      v:196 },
-  { nombre:'Cancela domicilio',    v:79  },
-  { nombre:'Dirección errónea',    v:63  },
-  { nombre:'Est. cerrado',         v:42  },
+  { nombre:'Error en creación',    v:370 },
+  { nombre:'Cliente ausente',      v:215 },
+  { nombre:'Dirección errónea',    v:73  },
+  { nombre:'Cancela domicilio',    v:69  },
+  { nombre:'Est. cerrado',         v:51  },
   { nombre:'Sin dinero',           v:32  },
-  { nombre:'Rehusado',             v:20  },
-  { nombre:'Med. incompleto',      v:15  },
-  { nombre:'Prob. movilidad',      v:14  },
-  { nombre:'Datafono falla',       v:4   },
+  { nombre:'Rehusado',             v:22  },
+  { nombre:'Med. incompleto',      v:16  },
+  { nombre:'Prob. movilidad',      v:15  },
+  { nombre:'Datafono falla',       v:5   },
 ];
 
 /* ═══════════════════════════════════════
@@ -2038,378 +2038,12 @@ function renderAll() {
   renderPanel(panel);
 }
 
-/* ═══════════════════════════════════════════════════════════
-   GOOGLE SHEETS — CONEXIÓN EN VIVO
-   -------------------------------------------------------
-   INSTRUCCIONES PARA ACTIVAR:
-   1. Abre tu Google Sheet
-   2. Archivo → Compartir → Publicar en la web
-   3. Selecciona la hoja "archivo (1)" → formato CSV → Publicar
-   4. Copia el ID de tu spreadsheet de la URL:
-      https://docs.google.com/spreadsheets/d/ ► ID ◄ /edit
-   5. Pega ese ID en SHEET_ID abajo
-   6. Confirma el número de GID de tu hoja (gid=892513436 en tu URL)
-═══════════════════════════════════════════════════════════ */
-const SHEET_ID  = '1XVTaeN1jcuIzJakvg74lCo-YCXBco1P1';  // ← tu ID real
-const SHEET_GID = '892513436';                             // ← gid de la pestaña
-const AUTO_REFRESH_MS = 5 * 60 * 1000;  // refresco cada 5 minutos
-
-// URL pública CSV (requiere "Publicar en la web" activado)
-const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${SHEET_GID}`;
-
-// ── Estado de carga ──────────────────────────────────────
-let sheetLoaded  = false;
-let lastFetchAt  = null;
-let autoRefreshTimer = null;
-
-/* ── Pantalla de carga ─────────────────────────────────── */
-function showLoader(msg = 'Conectando con Google Sheets…') {
-  let el = document.getElementById('sheetLoader');
-  if (!el) {
-    el = document.createElement('div');
-    el.id = 'sheetLoader';
-    el.style.cssText = `
-      position:fixed;inset:0;z-index:9999;
-      background:var(--bg-base);
-      display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
-      font-family:var(--font-body);
-    `;
-    el.innerHTML = `
-      <div style="display:flex;align-items:center;gap:12px">
-        <div style="width:38px;height:38px;background:linear-gradient(135deg,#1565C0,#00ACC1);border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:18px;color:#fff">H</div>
-        <span style="font-family:'Syne',sans-serif;font-weight:700;font-size:18px;color:var(--txt-primary)">HEEL Logística</span>
-      </div>
-      <div id="loaderSpinner" style="width:36px;height:36px;border:3px solid var(--border2);border-top-color:#1976D2;border-radius:50%;animation:spin .8s linear infinite"></div>
-      <div id="loaderMsg" style="font-size:13px;color:var(--txt-secondary);max-width:320px;text-align:center">${msg}</div>
-      <div id="loaderSub" style="font-size:11px;color:var(--txt-muted);font-family:'IBM Plex Mono',monospace"></div>
-    `;
-    document.body.appendChild(el);
-  } else {
-    document.getElementById('loaderMsg').textContent = msg;
-  }
-}
-
-function hideLoader() {
-  const el = document.getElementById('sheetLoader');
-  if (el) { el.style.opacity='0'; el.style.transition='opacity .4s'; setTimeout(()=>el.remove(),400); }
-}
-
-function setLoaderSub(txt) {
-  const el = document.getElementById('loaderSub');
-  if(el) el.textContent = txt;
-}
-
-/* ── Parsear CSV ───────────────────────────────────────── */
-function parseCSV(text) {
-  const lines = text.trim().split('\n');
-  const headers = lines[0].split(',').map(h => h.replace(/"/g,'').trim());
-  return lines.slice(1).map(line => {
-    // Handle quoted commas
-    const cols = [];
-    let cur = '', inQ = false;
-    for(let ch of line) {
-      if(ch==='"') { inQ=!inQ; continue; }
-      if(ch===',' && !inQ) { cols.push(cur.trim()); cur=''; }
-      else cur+=ch;
-    }
-    cols.push(cur.trim());
-    const row = {};
-    headers.forEach((h,i) => { row[h] = cols[i] ?? ''; });
-    return row;
-  }).filter(r => r[headers[0]]);  // skip empty rows
-}
-
-/* ── Convertir tiempo HH:MM:SS a minutos ─────────────── */
-function timeToMin(t) {
-  if(!t) return 0;
-  const parts = String(t).split(':');
-  if(parts.length < 2) return 0;
-  return parseInt(parts[0])*60 + parseInt(parts[1]) + (parseInt(parts[2]||0)/60);
-}
-
-/* ── Reconstruir tablas de datos desde filas crudas ───── */
-function buildDataFromRows(rows) {
-  const MES_ORDER = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO'];
-
-  // ── DATA_MES ────────────────────────────────────────
-  const mesMap = {};
-  MES_ORDER.forEach(m => {
-    mesMap[m] = { prog:0, ejec:0, novedad:0, cancel:0, cumple:0, tiempos:[], cp:0, ep:0, tprom:0 };
-  });
-
-  // ── DATA_CIUDAD ─────────────────────────────────────
-  const ciudadMap = {};
-
-  // ── DATA_FARM ───────────────────────────────────────
-  const farmMap = {};
-
-  // ── NOV_DATA ────────────────────────────────────────
-  const novMap = {};
-
-  rows.forEach(r => {
-    const mes      = (r['MES DATA']    || '').toUpperCase().trim();
-    const estado   = (r['estado']      || '').toUpperCase().trim();
-    const ciudad   = (r['CIUDAD 2']    || r['ciudad'] || '').toUpperCase().trim();
-    const punto    = (r['punto_venta'] || '').trim();
-    const novedad  = (r['novedad']     || '').trim();
-    const cumpl    = (r['CUMPLIMIENTO']|| '').toUpperCase().trim();
-    const tRaw     = r['TIEMPO ENTREGA'] || '';
-    const tMin     = timeToMin(tRaw);
-
-    if(!mes || !MES_ORDER.includes(mes)) return;
-
-    // ── Mes ──
-    const md = mesMap[mes];
-    md.prog++;
-    if(estado === 'ENTREGADO') md.ejec++;
-    if(estado === 'CERRADO CON NOVEDAD') { md.ejec++; md.novedad++; }
-    if(estado === 'CANCELACION') md.cancel++;
-    if(cumpl === 'CUMPLE') md.cumple++;
-    if(tMin > 1 && tMin < 300) md.tiempos.push(tMin);
-
-    // ── Ciudad ──
-    if(ciudad) {
-      if(!ciudadMap[ciudad]) ciudadMap[ciudad] = { prog:0,ejec:0,nov:0,cancel:0,cumple:0,tiempos:[] };
-      const cd = ciudadMap[ciudad];
-      cd.prog++;
-      if(estado==='ENTREGADO'||estado==='CERRADO CON NOVEDAD') cd.ejec++;
-      if(estado==='CERRADO CON NOVEDAD') cd.nov++;
-      if(estado==='CANCELACION') cd.cancel++;
-      if(cumpl==='CUMPLE') cd.cumple++;
-      if(tMin>1&&tMin<300) cd.tiempos.push(tMin);
-    }
-
-    // ── Farmacia ──
-    if(punto) {
-      const shortNombre = punto.replace(/HEEL FARMACIA /i,'').replace(/HEEL /i,'').replace(/DROGUERIA /i,'').trim();
-      if(!farmMap[punto]) farmMap[punto] = { nombre:shortNombre, ciudad, total:0, entregados:0, cumple:0, novedades:0 };
-      const fd = farmMap[punto];
-      fd.total++;
-      if(estado==='ENTREGADO'||estado==='CERRADO CON NOVEDAD') fd.entregados++;
-      if(cumpl==='CUMPLE') fd.cumple++;
-      if(novedad && novedad!=='NINGUNA' && estado==='CERRADO CON NOVEDAD') fd.novedades++;
-    }
-
-    // ── Novedad ──
-    if(novedad && novedad!=='NINGUNA' && estado==='CERRADO CON NOVEDAD') {
-      novMap[novedad] = (novMap[novedad]||0) + 1;
-    }
-  });
-
-  // ── Finalizar DATA_MES ───────────────────────────────
-  MES_ORDER.forEach(m => {
-    const md = mesMap[m];
-    if(md.prog === 0) return;
-    md.cp = Math.round(md.cumple/md.prog*1000)/10;
-    md.ep = Math.round(md.ejec/md.prog*1000)/10;
-    md.tprom = md.tiempos.length ? Math.round(md.tiempos.reduce((a,b)=>a+b,0)/md.tiempos.length*10)/10 : 0;
-  });
-  // Overwrite global
-  MES_ORDER.forEach(m => {
-    if(DATA_MES[m]) {
-      DATA_MES[m].prog   = mesMap[m].prog;
-      DATA_MES[m].ejec   = mesMap[m].ejec;
-      DATA_MES[m].novedad= mesMap[m].novedad;
-      DATA_MES[m].cancel = mesMap[m].cancel;
-      DATA_MES[m].cumple = mesMap[m].cumple;
-      DATA_MES[m].cp     = mesMap[m].cp;
-      DATA_MES[m].ep     = mesMap[m].ep;
-      DATA_MES[m].tprom  = mesMap[m].tprom;
-    }
-  });
-
-  // ── Finalizar DATA_CIUDAD ────────────────────────────
-  Object.keys(ciudadMap).forEach(c => {
-    const cd = ciudadMap[c];
-    if(DATA_CIUDAD[c]) {
-      DATA_CIUDAD[c].prog   = cd.prog;
-      DATA_CIUDAD[c].ejec   = cd.ejec;
-      DATA_CIUDAD[c].nov    = cd.nov;
-      DATA_CIUDAD[c].cancel = cd.cancel;
-      DATA_CIUDAD[c].cumple = cd.cumple;
-      DATA_CIUDAD[c].ep = Math.round(cd.ejec/cd.prog*1000)/10;
-      DATA_CIUDAD[c].cp = Math.round(cd.cumple/cd.prog*1000)/10;
-      DATA_CIUDAD[c].t  = cd.tiempos.length ? Math.round(cd.tiempos.reduce((a,b)=>a+b,0)/cd.tiempos.length*10)/10 : 0;
-    } else {
-      DATA_CIUDAD[c] = {
-        prog:cd.prog, ejec:cd.ejec, nov:cd.nov, cancel:cd.cancel, cumple:cd.cumple,
-        ep: Math.round(cd.ejec/cd.prog*1000)/10,
-        cp: Math.round(cd.cumple/cd.prog*1000)/10,
-        t:  cd.tiempos.length ? Math.round(cd.tiempos.reduce((a,b)=>a+b,0)/cd.tiempos.length*10)/10 : 0,
-      };
-    }
-  });
-
-  // ── Finalizar DATA_FARM ──────────────────────────────
-  const newFarms = Object.values(farmMap)
-    .filter(f => f.total >= 50)
-    .sort((a,b) => b.total - a.total)
-    .slice(0,20)
-    .map(f => ({
-      nombre: f.nombre,
-      ciudad: f.ciudad.charAt(0)+f.ciudad.slice(1).toLowerCase(),
-      total:  f.total,
-      ep:     Math.round(f.entregados/f.total*1000)/10,
-      cp:     Math.round(f.cumple/f.total*1000)/10,
-      np:     Math.round(f.novedades/f.total*1000)/10,
-      ticket: 0,
-    }));
-  if(newFarms.length > 0) {
-    DATA_FARM.length = 0;
-    newFarms.forEach(f => DATA_FARM.push(f));
-  }
-
-  // ── Finalizar NOV_DATA ───────────────────────────────
-  const newNov = Object.entries(novMap)
-    .sort((a,b)=>b[1]-a[1])
-    .slice(0,10)
-    .map(([nombre,v]) => ({nombre,v}));
-  if(newNov.length > 0) {
-    NOV_DATA.length = 0;
-    newNov.forEach(n => NOV_DATA.push(n));
-  }
-
-  return rows.length;
-}
-
-/* ── Actualizar UI del topbar con hora de último fetch ── */
-function updateSyncBadge() {
-  if(!lastFetchAt) return;
-  const t = lastFetchAt.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'});
-  const el = document.getElementById('syncBadge');
-  if(el) el.textContent = `↻ Sincronizado ${t}`;
-}
-
-/* ── Función principal de carga ──────────────────────── */
-async function fetchSheetData(isManual = false) {
-  if(isManual) {
-    const btn = document.querySelector('[title="Actualizar datos"] i');
-    if(btn) { btn.style.animation='spin .5s linear infinite'; }
-  }
-
-  const statusEl = document.getElementById('sheetStatus');
-  if(statusEl) { statusEl.textContent='Cargando…'; statusEl.style.color='#FFB300'; }
-
-  try {
-    setLoaderSub(`Descargando datos desde Google Sheets…`);
-
-    // Use allorigins proxy to avoid CORS when sheet is published
-    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(CSV_URL)}`;
-    let csvText = '';
-
-    try {
-      // First: try direct (works when sheet is truly public)
-      const res = await fetch(CSV_URL, { cache:'no-store' });
-      if(res.ok) {
-        csvText = await res.text();
-      } else { throw new Error('direct failed'); }
-    } catch {
-      // Fallback: CORS proxy
-      const res2 = await fetch(proxyUrl);
-      if(!res2.ok) throw new Error(`HTTP ${res2.status}`);
-      const json = await res2.json();
-      csvText = json.contents;
-    }
-
-    if(!csvText || csvText.length < 100) throw new Error('Hoja vacía o sin datos');
-
-    setLoaderSub('Procesando registros…');
-    const rows = parseCSV(csvText);
-    if(rows.length === 0) throw new Error('No se pudieron leer filas');
-
-    const count = buildDataFromRows(rows);
-    lastFetchAt = new Date();
-    sheetLoaded = true;
-
-    // Update live badge
-    document.querySelector('.live-text').textContent = `${count.toLocaleString('es-CO')} registros · actualizado`;
-    updateSyncBadge();
-    if(statusEl) { statusEl.textContent='● En vivo'; statusEl.style.color='#00C853'; }
-
-    hideLoader();
-    renderAll();
-
-    // Show toast
-    showToast(`✓ ${count.toLocaleString('es-CO')} registros cargados desde Google Sheets`, 'success');
-
-  } catch(err) {
-    console.error('Sheet fetch error:', err);
-
-    if(!sheetLoaded) {
-      // First load failed — show error in loader, fallback to static data
-      if(document.getElementById('loaderMsg')) {
-        document.getElementById('loaderMsg').innerHTML = `
-          <strong style="color:#F44336">No se pudo conectar con Google Sheets</strong><br>
-          <span style="font-size:12px;color:var(--txt-muted)">Verifica que la hoja esté publicada en la web.<br>Usando datos estáticos de demostración.</span>`;
-        document.getElementById('loaderSpinner').style.borderTopColor = '#F44336';
-        document.getElementById('loaderSpinner').style.animation = 'none';
-      }
-      setTimeout(() => { hideLoader(); renderAll(); }, 3500);
-    } else {
-      showToast(`⚠ No se pudo actualizar: ${err.message}`, 'warn');
-    }
-    if(statusEl) { statusEl.textContent='● Sin conexión'; statusEl.style.color='#F44336'; }
-  }
-
-  // Stop spinner
-  const btn = document.querySelector('[title="Actualizar datos"] i');
-  if(btn) btn.style.animation = '';
-}
-
-/* ── Toast notification ───────────────────────────────── */
-function showToast(msg, type='success') {
-  const t = document.createElement('div');
-  const bg = type==='success'?'rgba(0,200,83,0.12)':type==='warn'?'rgba(255,179,0,0.12)':'rgba(244,67,54,0.12)';
-  const bc2= type==='success'?'rgba(0,200,83,0.3)':type==='warn'?'rgba(255,179,0,0.3)':'rgba(244,67,54,0.3)';
-  const tc2= type==='success'?'#00C853':type==='warn'?'#FFB300':'#F44336';
-  t.style.cssText=`position:fixed;bottom:24px;right:24px;z-index:9998;padding:11px 18px;border-radius:10px;font-size:12px;font-family:'IBM Plex Mono',monospace;background:${bg};border:1px solid ${bc2};color:${tc2};box-shadow:0 4px 20px rgba(0,0,0,0.2);animation:slideUp .3s ease;max-width:320px`;
-  t.textContent = msg;
-  document.body.appendChild(t);
-  setTimeout(()=>{t.style.opacity='0';t.style.transition='opacity .3s';setTimeout(()=>t.remove(),300)},4000);
-}
-
-/* ── Override refreshData to re-fetch sheet ─────────── */
-function refreshData() {
-  fetchSheetData(true);
-}
-
-/* ── Auto-refresh timer ──────────────────────────────── */
-function startAutoRefresh() {
-  if(autoRefreshTimer) clearInterval(autoRefreshTimer);
-  autoRefreshTimer = setInterval(() => {
-    fetchSheetData(false);
-  }, AUTO_REFRESH_MS);
-}
-
 /* ═══════════════════════════════════════
    INIT
 ═══════════════════════════════════════ */
 Chart.defaults.font.family = 'IBM Plex Sans';
 Chart.defaults.color = '#4A566E';
-
-// Add sync badge to topbar
-const syncBadge = document.createElement('div');
-syncBadge.id = 'syncBadge';
-syncBadge.style.cssText = 'font-size:10px;color:var(--txt-muted);font-family:\'IBM Plex Mono\',monospace;padding:4px 10px;border:1px solid var(--border2);border-radius:20px;white-space:nowrap';
-syncBadge.textContent = '↻ Sin sincronizar';
-document.querySelector('.topbar-right').prepend(syncBadge);
-
-// Add sheet status dot
-const statusEl = document.createElement('div');
-statusEl.id = 'sheetStatus';
-statusEl.style.cssText = 'font-size:10px;font-family:\'IBM Plex Mono\',monospace;color:#FFB300;white-space:nowrap;padding:0 4px';
-statusEl.textContent = '● Conectando…';
-document.querySelector('.topbar-right').prepend(statusEl);
-
-// Add slide-up animation
-const styleEl = document.createElement('style');
-styleEl.textContent = '@keyframes slideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}} @keyframes spin{to{transform:rotate(360deg)}}';
-document.head.appendChild(styleEl);
-
-// Show loader and start fetch
-showLoader('Conectando con Google Sheets…');
-fetchSheetData(false);
-startAutoRefresh();
+renderAll();
 
 </script>
 
