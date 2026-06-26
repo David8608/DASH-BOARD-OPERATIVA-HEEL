@@ -409,6 +409,11 @@ body{
 /* ── LOADING REFINADO ── */
 .loading-overlay{backdrop-filter:blur(4px)}
 
+
+/* ── FRANJA HORARIA KPIs ── */
+#franjaKpis > div { transition: transform var(--tr); }
+#franjaKpis > div:hover { transform: translateY(-2px); }
+
 </style>
 </head>
 <body>
@@ -552,7 +557,25 @@ body{
   </div>
   <div class="semaforo-grid" id="semaforoGrid"></div>
 
-  <!-- SECTION 3: TENDENCIAS -->
+  <!-- SECTION 3: FRANJA HORARIA -->
+  <div class="section-hdr">
+    <div class="section-title"><i class="fa-solid fa-clock" style="color:var(--heel-green)"></i>Distribución por Franja Horaria</div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <span id="franjaInfo" style="font-size:10px;color:var(--text3)"></span>
+    </div>
+  </div>
+  <div class="card-panel" style="margin-bottom:14px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+      <div>
+        <div class="card-title">Creación de Servicios por Franja Horaria</div>
+        <div class="card-sub">Cantidad de servicios creados por hora del día · identifica horas pico y valle</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap" id="franjaKpis"></div>
+    </div>
+    <div style="position:relative;height:240px"><canvas id="cFranja"></canvas></div>
+  </div>
+
+  <!-- SECTION 4: TENDENCIAS -->
   <div class="section-hdr">
     <div class="section-title"><i class="fa-solid fa-chart-line" style="color:var(--heel-green)"></i>Tendencias Operativas</div>
     <div class="vbtn-grp">
@@ -904,43 +927,33 @@ function processData(normalized) {
   // Google Sheets envía tiempos como:
   //   1899-12-30T02:35:18.000Z  (fecha serial de Excel con tiempo)
   //   02:35:18                  (string HH:MM:SS)
-  //   0.1081  (número decimal de día → multiplicar por 1440)
   function parseTime(raw) {
-    if (!raw) return NaN;
+    if (raw == null || raw === '') return NaN;
     const s = String(raw).trim();
-    if (!s || s==='null') return NaN;
+    if (!s || s === 'null' || s === 'undefined') return NaN;
 
-    // CASO 1: ISO de Google Sheets para tiempos → 1899-12-30T02:35:18.000Z
-    // El tiempo real son las horas/minutos/segundos de la parte T
-    if (/1899-12-30T(\d{2}):(\d{2}):(\d{2})/.test(s)) {
-      const m = s.match(/T(\d{2}):(\d{2}):(\d{2})/);
-      if (m) {
-        const mins = parseInt(m[1])*60 + parseInt(m[2]) + parseInt(m[3])/60;
-        return (mins>=0 && mins<1440) ? mins : NaN;
-      }
+    // FORMATO 1: ISO de Apps Script → 1899-12-30T02:35:18.000Z (serial Excel)
+    // También cualquier ISO con parte T — la hora:min:seg ES el tiempo de entrega
+    const isoM = s.match(/T(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+    if (isoM) {
+      const mins = parseInt(isoM[1]) * 60 + parseInt(isoM[2]) + parseInt(isoM[3] || 0) / 60;
+      return (mins > 0 && mins < 720) ? mins : NaN;
     }
-    // CASO 2: Cualquier ISO con parte de tiempo (fecha del día actual o arbitraria)
-    if (/T(\d{2}):(\d{2}):(\d{2})/.test(s)) {
-      const m = s.match(/T(\d{2}):(\d{2}):(\d{2})/);
-      if (m) {
-        const mins = parseInt(m[1])*60 + parseInt(m[2]) + parseInt(m[3])/60;
-        // Solo retornar si está en rango operativo razonable (0-480 min = 8h)
-        return (mins>0 && mins<480) ? mins : NaN;
-      }
+
+    // FORMATO 2: Texto puro HH:MM:SS o HH:MM
+    const hmsM = s.match(/^(\d{1,3}):(\d{2})(?::(\d{2}))?$/);
+    if (hmsM) {
+      const mins = parseInt(hmsM[1]) * 60 + parseInt(hmsM[2]) + parseInt(hmsM[3] || 0) / 60;
+      return (mins > 0 && mins < 720) ? mins : NaN;
     }
-    // CASO 3: HH:MM:SS o HH:MM como string
-    const hms = s.match(/^(\d{1,3}):(\d{2})(?::(\d{2}))?$/);
-    if (hms) {
-      const t = parseInt(hms[1])*60 + parseInt(hms[2]) + (parseInt(hms[3]||0)/60);
-      return (t>0 && t<480) ? t : NaN;
-    }
-    // CASO 4: Número decimal (fracción de día de Google Sheets)
+
+    // FORMATO 3: Número decimal (fracción de día) o minutos directos
     const n = parseFloat(s);
-    if (!isNaN(n) && n>0 && n<1) {
-      const mins = n * 1440;
-      return (mins>0 && mins<480) ? mins : NaN;
+    if (!isNaN(n) && isFinite(n)) {
+      if (n > 0 && n < 1)    return n * 1440;  // fracción de día → minutos
+      if (n >= 1 && n < 720) return n;           // ya en minutos
     }
-    if (!isNaN(n) && n>0 && n<480) return n; // ya en minutos
+
     return NaN;
   }
 
@@ -973,6 +986,7 @@ function processData(normalized) {
       fecha,
       fechaStr:    fecha ? `${fecha.getFullYear()}-${String(fecha.getMonth()+1).padStart(2,'0')}-${String(fecha.getDate()).padStart(2,'0')}` : '',
       fechaDisplay: fecha ? fmtFecha(fecha) : '—',
+      hora:        fecha ? fecha.getHours() : -1,   // 0-23 para franja horaria
       ciudad,
       punto,
       novedad:     novedad.toUpperCase(),
@@ -997,31 +1011,39 @@ function processData(normalized) {
     const ticketPorMes = {};
     let total=0, cnt=0;
     MESES.forEach(m => {
-      const raw = getField(r, `ticket ${m}`, `Ticket ${m}`, `ticket_${m}`, m, m.charAt(0).toUpperCase()+m.slice(1));
-      // Limpiar: #DIV/0!, null, undefined, strings con $, comas/puntos como separadores COP
+      // Buscar el valor del ticket para este mes (múltiples nombres de campo posibles)
+      const raw = getField(r,
+        `ticket ${m}`, `Ticket ${m}`, `ticket_${m}`,
+        `TICKET ${m.toUpperCase()}`, `Ticket_${m}`,
+        m, m.charAt(0).toUpperCase()+m.slice(1)
+      );
       let v = 0;
-      if (raw && raw !== 'null' && raw !== '' && raw !== undefined) {
-        const rs = String(raw).trim();
-        // Saltar errores de Google Sheets
-        if (rs.startsWith('#') || rs === 'N/A' || rs === 'Infinity') { v = 0; }
-        // Si llega como ISO date (raro pero posible)
-        else if (rs.includes('T') && rs.includes('-')) { v = 0; }
-        else {
-          // Formato COP: "$ 46.780" o "46.780" o "46,780" o "46780"
-          // Detectar separador de miles: si hay punto/coma con exactamente 3 dígitos después
-          let cleaned = rs.replace(/[$\s\u00a0]/g, ''); // quitar $, espacios, nbsp
-          // COP usa punto como miles: 46.780 → 46780
-          // Si tiene punto seguido de exactamente 3 dígitos al final o antes de otro grupo
-          if (/\d{1,3}(\.\d{3})+$/.test(cleaned)) {
-            cleaned = cleaned.replace(/\./g, ''); // punto = miles
-          } else if (/\d{1,3}(,\d{3})+$/.test(cleaned)) {
-            cleaned = cleaned.replace(/,/g, '');  // coma = miles
+      if (raw != null && raw !== '' && raw !== 'null') {
+        // Si ya es número, usarlo directamente
+        if (typeof raw === 'number') {
+          v = (isFinite(raw) && raw > 0) ? raw : 0;
+        } else {
+          const rs = String(raw).trim();
+          // Ignorar errores de Google Sheets
+          if (!rs || rs.startsWith('#') || rs === 'N/A' || rs === 'Infinity' || rs.includes('DIV')) {
+            v = 0;
+          } else if (rs.includes('T') && rs.includes('-')) {
+            // Es una fecha ISO por error, ignorar
+            v = 0;
           } else {
-            // Coma como decimal (ej. "46,78")
-            cleaned = cleaned.replace(/,/g, '.');
+            // Limpiar formato COP: "$ 46.780" → 46780
+            let cleaned = rs.replace(/[$\s\u00a0]/g, ''); // quitar $ y espacios
+            // Detectar si punto es separador de miles (3 dígitos después)
+            if (/^\d{1,3}(\.\d{3})+$/.test(cleaned)) {
+              cleaned = cleaned.replace(/\./g, ''); // punto = miles → eliminar
+            } else if (/^\d{1,3}(,\d{3})+$/.test(cleaned)) {
+              cleaned = cleaned.replace(/,/g, '');   // coma = miles → eliminar
+            } else {
+              cleaned = cleaned.replace(/,/g, '.');  // coma como decimal
+            }
+            const parsed = parseFloat(cleaned);
+            v = (!isNaN(parsed) && isFinite(parsed) && parsed > 0) ? parsed : 0;
           }
-          const parsed = parseFloat(cleaned);
-          v = (!isNaN(parsed) && isFinite(parsed) && parsed > 0) ? parsed : 0;
         }
       }
       ticketPorMes[m] = v;
@@ -1206,16 +1228,158 @@ function getPrevPeriodRows() {
 
 // ── RENDER ALL ───────────────────────────────────────
 function renderAll() {
-  if(!RAW.length) return; // No hay datos aún
-  try { renderKPIs(); } catch(e){ console.error('renderKPIs:',e); }
-  try { renderSemaforo(); } catch(e){ console.error('renderSemaforo:',e); }
-  try { renderTendencias(); } catch(e){ console.error('renderTendencias:',e); }
-  try { renderGestionOperativa(); } catch(e){ console.error('renderGestOp:',e); }
-  try { renderDonut(); } catch(e){ console.error('renderDonut:',e); }
-  try { renderTiempoCity(); } catch(e){ console.error('renderTiempo:',e); }
-  try { renderMapa(); } catch(e){ console.error('renderMapa:',e); }
-  try { renderAlertas(); } catch(e){ console.error('renderAlertas:',e); }
-  try { renderTabla(); } catch(e){ console.error('renderTabla:',e); }
+  if(!RAW.length) return;
+  try { renderKPIs(); }            catch(e){ console.error('renderKPIs:',e); }
+  try { renderSemaforo(); }        catch(e){ console.error('renderSemaforo:',e); }
+  try { renderFranja(); }          catch(e){ console.error('renderFranja:',e); }
+  try { renderTendencias(); }      catch(e){ console.error('renderTendencias:',e); }
+  try { renderGestionOperativa(); }catch(e){ console.error('renderGestOp:',e); }
+  try { renderDonut(); }           catch(e){ console.error('renderDonut:',e); }
+  try { renderTiempoCity(); }      catch(e){ console.error('renderTiempo:',e); }
+  try { renderMapa(); }            catch(e){ console.error('renderMapa:',e); }
+  try { renderAlertas(); }         catch(e){ console.error('renderAlertas:',e); }
+  try { renderTabla(); }           catch(e){ console.error('renderTabla:',e); }
+}
+
+// ── FRANJA HORARIA ────────────────────────────────────────────────────────
+function renderFranja() {
+  destroyed('franja');
+  const el = document.getElementById('cFranja');
+  if (!el) return;
+
+  // Contar servicios por hora (0-23)
+  const horas = Array.from({length:24}, (_,i) => i);
+  const counts = new Array(24).fill(0);
+  const efects = new Array(24).fill(0);
+
+  FILTERED.forEach(r => {
+    if (r.hora >= 0 && r.hora < 24) {
+      counts[r.hora]++;
+      if (r.ef) efects[r.hora]++;
+    }
+  });
+
+  const total = counts.reduce((a,b) => a+b, 0) || 1;
+  const maxC  = Math.max(...counts, 1);
+  const minC  = Math.min(...counts.filter(v=>v>0), maxC);
+
+  // Hora pico y valle
+  const horaPico  = counts.indexOf(maxC);
+  const horaValle = counts.indexOf(minC);
+
+  // KPIs de franja
+  const kpiEl = document.getElementById('franjaKpis');
+  if (kpiEl) {
+    kpiEl.innerHTML = [
+      {lbl:'Hora Pico',    val:`${String(horaPico).padStart(2,'0')}:00`,   sub:`${fmt(maxC)} servicios`,  col:'#EF4444'},
+      {lbl:'Hora Valle',   val:`${String(horaValle).padStart(2,'0')}:00`,  sub:`${fmt(minC)} servicios`,  col:'#10B981'},
+      {lbl:'Con Registro', val:`${counts.filter(v=>v>0).length} franjas`,  sub:`de 24 horas`,             col:'#6366F1'},
+    ].map(k=>`
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 14px;text-align:center;min-width:100px">
+        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:3px">${k.lbl}</div>
+        <div style="font-size:18px;font-weight:800;color:${k.col};letter-spacing:-.02em">${k.val}</div>
+        <div style="font-size:9px;color:var(--text3);margin-top:1px">${k.sub}</div>
+      </div>`).join('');
+  }
+
+  // Colores: rojo=pico, verde=valle, azul=normal, gris=sin datos
+  const colores = counts.map((v, i) => {
+    if (v === 0)    return 'rgba(128,128,128,.15)';
+    if (i === horaPico)  return 'rgba(239,68,68,.75)';
+    if (i === horaValle) return 'rgba(16,185,129,.7)';
+    const ratio = v / maxC;
+    if (ratio > 0.7) return 'rgba(245,158,11,.65)';
+    return 'rgba(99,102,241,.55)';
+  });
+
+  const labels = horas.map(h => `${String(h).padStart(2,'0')}:00`);
+  const efPcts = horas.map(h => counts[h] > 0 ? pct(efects[h], counts[h]) : null);
+
+  // Gráfico combinado: barras (cantidad) + línea (% efectividad)
+  CHARTS.franja = new Chart(el, {
+    data: {
+      labels,
+      datasets: [
+        {
+          type: 'bar',
+          label: 'Servicios',
+          data: counts,
+          backgroundColor: colores,
+          borderRadius: 4,
+          borderSkipped: false,
+          yAxisID: 'y',
+          order: 2,
+        },
+        {
+          type: 'line',
+          label: '% Efectividad',
+          data: efPcts,
+          borderColor: '#10B981',
+          backgroundColor: 'transparent',
+          pointBackgroundColor: efPcts.map(v => v===null?'transparent':v>=95?'#10B981':v>=90?'#F59E0B':'#EF4444'),
+          pointRadius: counts.map(v => v > 0 ? 3 : 0),
+          borderWidth: 1.5,
+          spanGaps: false,
+          tension: 0.3,
+          yAxisID: 'y2',
+          order: 1,
+        },
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top',
+          align: 'end',
+          labels: { color: gtc(), font: { size: 10 }, boxWidth: 10, padding: 12 }
+        },
+        tooltip: {
+          callbacks: {
+            title: ctx => `${ctx[0].label} – ${String(parseInt(ctx[0].label)+1).padStart(2,'0')}:00`,
+            label: ctx => {
+              if (ctx.datasetIndex === 0) return ` ${fmt(ctx.raw)} servicios (${(ctx.raw/total*100).toFixed(1)}%)`;
+              if (ctx.raw === null) return null;
+              return ` Efectividad: ${ctx.raw.toFixed(1)}%`;
+            }
+          }
+        },
+        annotation: {
+          annotations: {
+            lineRef: {
+              type: 'line', yMin: 0, yMax: maxC,
+              xMin: horaPico, xMax: horaPico,
+              borderColor: 'rgba(239,68,68,.25)',
+              borderWidth: 1, borderDash: [4,4],
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: gtc(), font: { size: 9 }, maxRotation: 0, autoSkip: false,
+                   callback: (v, i) => i % 2 === 0 ? labels[i] : '' },
+          grid: { display: false }
+        },
+        y: {
+          position: 'left',
+          ticks: { color: gtc(), font: { size: 9 } },
+          grid: { color: gc() },
+          title: { display: true, text: 'Servicios', color: gtc(), font: { size: 9 } }
+        },
+        y2: {
+          position: 'right',
+          min: 0, max: 105,
+          ticks: { callback: v => v + '%', color: '#10B981', font: { size: 9 } },
+          grid: { display: false },
+          title: { display: true, text: '% Efectividad', color: '#10B981', font: { size: 9 } }
+        }
+      }
+    }
+  });
 }
 
 // ── SECTION 1: KPIs ──────────────────────────────────
