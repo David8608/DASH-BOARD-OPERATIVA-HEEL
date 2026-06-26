@@ -266,15 +266,10 @@ body{
 .ml-dot{width:10px;height:10px;border-radius:50%}
 
 /* ── LOADING ── */
-.loading-overlay{
-  position:fixed;inset:0;background:var(--bg);z-index:9999;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;
-  transition:opacity .5s;
-}
+.loading-overlay{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;transition:opacity .4s}
 .loading-overlay.hidden{opacity:0;pointer-events:none}
-.loading-logo{height:48px;filter:brightness(0) sepia(1) saturate(3) hue-rotate(100deg)}
-.loading-spinner{width:44px;height:44px;border:3px solid var(--border2);border-top-color:var(--heel-green);border-radius:50%;animation:spin .8s linear infinite}
-.loading-text{font-size:13px;color:var(--text3)}
+.loading-logo{height:44px;filter:brightness(0) sepia(1) saturate(3) hue-rotate(100deg)}
+.loading-spinner{width:40px;height:40px;border:3px solid var(--border2);border-top-color:var(--heel-green);border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .loading-progress{width:220px;height:3px;background:var(--bg4);border-radius:2px;overflow:hidden}
 .loading-bar{height:100%;background:linear-gradient(90deg,var(--heel-green),var(--heel-green2));width:0;border-radius:2px;transition:width .3s ease}
@@ -333,36 +328,9 @@ body{
 @media print{.topbar,.filters-bar,.alerts-strip,.loading-overlay{display:none!important}.main{padding:0}}
 
 /* ── DIAGNÓSTICO ── */
-.diag-panel {
-  display:none;position:fixed;bottom:16px;right:16px;
-  width:420px;max-height:70vh;overflow-y:auto;
-  background:var(--bg2);border:1px solid var(--border2);
-  border-radius:var(--r2);box-shadow:var(--shadow2);
-  z-index:2000;font-family:'Consolas','SF Mono',monospace;font-size:11px;
-}
-.diag-header {
-  display:flex;align-items:center;justify-content:space-between;
-  padding:10px 14px;border-bottom:1px solid var(--border);
-  font-weight:700;font-size:12px;color:var(--text);
-  background:var(--bg3);border-radius:var(--r2) var(--r2) 0 0;
-  position:sticky;top:0;
-}
-.diag-body{padding:12px 14px;display:flex;flex-direction:column;gap:8px}
-.diag-row{display:flex;align-items:flex-start;gap:8px;padding:6px 8px;border-radius:6px;background:var(--bg3)}
-.diag-icon{font-size:13px;flex-shrink:0;margin-top:1px}
-.diag-key{color:var(--text3);min-width:110px;flex-shrink:0}
-.diag-val{color:var(--text);word-break:break-all}
-.diag-val.ok{color:#10B981}.diag-val.err{color:#EF4444}.diag-val.warn{color:#F59E0B}
-.diag-log{background:var(--bg);border:1px solid var(--border);border-radius:6px;
-  padding:8px;max-height:200px;overflow-y:auto;font-size:10px;color:var(--text3);white-space:pre-wrap}
-.diag-sep{height:1px;background:var(--border);margin:4px 0}
-.test-spin{animation:spin .8s linear infinite;display:inline-block}
-/* ── RETRY PANEL ── */
-.retry-panel{
-  display:none;text-align:center;padding:32px 20px;
-  background:var(--bg2);border:1px solid var(--border);
-  border-radius:var(--r2);margin:16px 20px;
-}
+
+
+
 .retry-title{font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px}
 .retry-sub{font-size:12px;color:var(--text3);margin-bottom:16px;line-height:1.6}
 .retry-code{background:var(--bg3);border:1px solid var(--border);
@@ -445,16 +413,21 @@ body{
 </head>
 <body>
 
-<!-- ═══════════════════════════════════════
-     LOADING OVERLAY
-═══════════════════════════════════════ -->
+<!-- LOADING OVERLAY -->
 <div class="loading-overlay" id="loadingOverlay">
   <img class="loading-logo" src="data:image/png;base64,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" alt="HEEL">
   <div class="loading-spinner"></div>
-  <div class="loading-text" id="loadingText">Conectando con API...</div>
-  <div class="loading-progress"><div class="loading-bar" id="loadingBar"></div></div>
+  <div id="loadingText" style="font-size:12px;color:var(--text3);margin-top:4px">Cargando datos...</div>
 </div>
-
+<!-- ERROR OVERLAY -->
+<div class="error-overlay" id="errorOverlay" style="display:none">
+  <div class="error-box">
+    <div style="font-size:40px;margin-bottom:14px">📡</div>
+    <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px" id="errorTitle">Sin conexión con la API</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:20px;line-height:1.6" id="errorMsg"></div>
+    <button class="retry-btn" onclick="forceRefresh()"><i class="fa-solid fa-rotate"></i> Reintentar</button>
+  </div>
+</div>
 <!-- ═══════════════════════════════════════
      TOPBAR
 ═══════════════════════════════════════ -->
@@ -466,24 +439,15 @@ body{
     <span>Gerencia Nacional de Operaciones · HEEL Colombia</span>
   </div>
   <div class="topbar-right">
-    <div class="status-pill">
+    <div class="status-pill" id="statusPill">
       <div class="pulse-dot" id="apiDot"></div>
-      <span id="apiStatus">Conectando...</span>
+      <span id="apiStatus">Cargando...</span>
     </div>
-    <div class="refresh-pill" id="refreshPill">
-      <i class="fa-solid fa-clock-rotate-left" id="refreshIcon"></i>
-      <span id="refreshTime">—</span>
-    </div>
-    <span style="font-size:10px;color:rgba(255,255,255,.5)" id="recCount">—</span>
-    <button class="tb-btn" id="themeBtn" onclick="toggleTheme()"><i class="fa-solid fa-moon" id="themeIcon"></i></button>
-    <button class="tb-btn" onclick="testAPIConnection()" id="testApiBtn" title="Probar conexión con la API">
-      <i class="fa-solid fa-plug"></i> Probar API
-    </button>
-    <button class="tb-btn" onclick="toggleDiag()" title="Panel de diagnóstico (Admin)">
-      <i class="fa-solid fa-terminal"></i>
-    </button>
-    <button class="tb-btn" onclick="window.print()"><i class="fa-solid fa-print"></i></button>
-    <button class="tb-btn" onclick="forceRefresh()"><i class="fa-solid fa-rotate" id="forceRefreshIcon"></i> Actualizar</button>
+    <span style="font-size:10px;color:rgba(255,255,255,.55)" id="recCount"></span>
+    <span style="font-size:9px;color:rgba(255,255,255,.4);font-family:monospace" id="refreshTime"></span>
+    <button class="tb-btn" onclick="toggleTheme()" title="Cambiar tema"><i class="fa-solid fa-moon" id="themeIcon"></i></button>
+    <button class="tb-btn" onclick="window.print()" title="Imprimir"><i class="fa-solid fa-print"></i></button>
+    <button class="tb-btn" onclick="forceRefresh()" title="Actualizar datos"><i class="fa-solid fa-rotate" id="forceRefreshIcon"></i> Actualizar</button>
   </div>
 </header>
 
@@ -569,51 +533,6 @@ body{
 
 <!-- ALERTS STRIP -->
 <div class="alerts-strip" id="alertsStrip" style="display:none"></div>
-
-<!-- ═══════════════════════════════════════
-     PANEL DIAGNÓSTICO (Admin · oculto)
-═══════════════════════════════════════ -->
-<div class="diag-panel" id="diagPanel">
-  <div class="diag-header">
-    <span><i class="fa-solid fa-terminal" style="color:var(--heel-green);margin-right:6px"></i>Diagnóstico de API</span>
-    <button onclick="toggleDiag()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px">✕</button>
-  </div>
-  <div class="diag-body" id="diagBody">
-    <div class="diag-row"><span class="diag-icon">🌐</span><span class="diag-key">URL:</span><span class="diag-val" id="dUrl">—</span></div>
-    <div class="diag-row"><span class="diag-icon">📡</span><span class="diag-key">Estado HTTP:</span><span class="diag-val" id="dStatus">—</span></div>
-    <div class="diag-row"><span class="diag-icon">⏱</span><span class="diag-key">Tiempo respuesta:</span><span class="diag-val" id="dTime">—</span></div>
-    <div class="diag-row"><span class="diag-icon">📦</span><span class="diag-key">Método:</span><span class="diag-val" id="dMethod">—</span></div>
-    <div class="diag-row"><span class="diag-icon">📊</span><span class="diag-key">Registros:</span><span class="diag-val" id="dRecords">—</span></div>
-    <div class="diag-row"><span class="diag-icon">🔄</span><span class="diag-key">Última actualiz.:</span><span class="diag-val" id="dLastUpdate">—</span></div>
-    <div class="diag-sep"></div>
-    <div class="diag-row"><span class="diag-icon">❌</span><span class="diag-key">Error:</span><span class="diag-val err" id="dError">Ninguno</span></div>
-    <div class="diag-row"><span class="diag-icon">🔍</span><span class="diag-key">Tipo error:</span><span class="diag-val" id="dErrType">—</span></div>
-    <div class="diag-sep"></div>
-    <div style="font-size:10px;color:var(--text3);margin-bottom:4px">LOG DE CONSOLA:</div>
-    <div class="diag-log" id="diagLog">Esperando conexión...</div>
-    <div style="display:flex;gap:6px;margin-top:4px">
-      <button class="retry-btn" style="padding:6px 14px;font-size:11px" onclick="forceRefresh()">🔄 Reintentar</button>
-      <button class="retry-btn secondary" style="padding:6px 14px;font-size:11px" onclick="clearDiagLog()">🗑 Limpiar log</button>
-      <button class="retry-btn secondary" style="padding:6px 14px;font-size:11px" onclick="copyDiagLog()">📋 Copiar</button>
-    </div>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════
-     PANEL DE ERROR / RETRY
-═══════════════════════════════════════ -->
-<div class="retry-panel" id="retryPanel">
-  <div style="font-size:36px;margin-bottom:12px">📡</div>
-  <div class="retry-title" id="retryTitle">No se pudo conectar con la API</div>
-  <div class="retry-sub" id="retrySub">Verifica tu conexión a internet e intenta nuevamente.</div>
-  <div class="retry-code" id="retryCode"></div>
-  <div>
-    <button class="retry-btn" onclick="forceRefresh()"><i class="fa-solid fa-rotate"></i> Reintentar conexión</button>
-    <button class="retry-btn secondary" onclick="toggleDiag()"><i class="fa-solid fa-terminal"></i> Ver diagnóstico</button>
-    <button class="retry-btn secondary" onclick="loadDemoData()"><i class="fa-solid fa-database"></i> Usar datos demo</button>
-  </div>
-</div>
-
 
 <!-- ═══════════════════════════════════════
      MAIN CONTENT
@@ -800,406 +719,131 @@ body{
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-/* ═══════════════════════════════════════════════════
-   HEEL TOWER CONTROL — Core Engine
-   API → DataEngine → FilterEngine → RenderEngine
-═══════════════════════════════════════════════════ */
-
-// ── CONFIG ──────────────────────────────────────────
-const API_URL = 'https://script.google.com/macros/s/AKfycbxnNu4ib2CXKC5bdGYnbvIJ-C-X1eMCdvOMlcbJeCWDZ8sk6AtUkX6lg21nvf5tM2SdzA/exec';
-const REFRESH_MS = 5 * 60 * 1000; // 5 min
-const METAS = { cumplimiento:95, efectividad:97, novedades:3, cancelaciones:2 };
-
-// Ciudad coords para mapa
-const CITY_COORDS = {
-  'BOGOTA':[4.7110,-74.0721],'MEDELLIN':[6.2442,-75.5812],'CALI':[3.4516,-76.5320],
-  'BARRANQUILLA':[10.9639,-74.7964],'CARTAGENA':[10.3910,-75.4794],'BUCARAMANGA':[7.1193,-73.1227],
-  'PEREIRA':[4.8133,-75.6961],'IBAGUE':[4.4389,-75.2322],'MANIZALES':[5.0703,-75.5138],
-  'NEIVA':[2.9273,-75.2819],'TUNJA':[5.5353,-73.3678],'MONTERIA':[8.7479,-75.8814],
-  'CHIA':[4.8606,-74.0565],'CUCUTA':[7.8939,-72.5078],
-};
-
-// ── ESTADO GLOBAL ────────────────────────────────────
-let RAW = [];          // todos los servicios
-let TICKETS = [];      // tabla tickets
-let FILTERED = [];     // filtrado activo
-let CHARTS = {};
-let dtTable = null;
-let leafletMap = null;
-let leafletLayers = {};
-let mapLayerMode = 'cumpl';
-let tendGran = 'mes';
-let farmView = 'srv';
-let refreshTimer = null;
-let lastRefresh = null;
-
-// ── HELPERS ──────────────────────────────────────────
-const safe = v => (!isNaN(v) && isFinite(v) && v!==null && v!==undefined) ? v : 0;
-const fmt  = (n,d=0) => (isNaN(n)||!isFinite(n)) ? '—' : Number(n).toLocaleString('es-CO',{minimumFractionDigits:d,maximumFractionDigits:d});
-const fmtCOP = v => (isNaN(v)||!isFinite(v)||v<=0) ? '—' : '$ '+Number(Math.round(v)).toLocaleString('es-CO');
-const pct  = (a,b) => (b&&b>0) ? Math.round(a/b*10000)/100 : 0;
-const pf   = (v,s='%') => (isNaN(v)||!isFinite(v))?'—':`${v.toFixed(1)}${s}`;
-const bc   = (v,hi,lo) => v>=hi?'var(--ok)':v>=lo?'var(--warn)':'var(--danger)';
-const bcR  = (v,lo,hi) => v<=lo?'var(--ok)':v<=hi?'var(--warn)':'var(--danger)';
-const fmtMin = (mins) => {  // minutos → "HH:MM" o "Xh YYmin"
-  if(isNaN(mins)||mins<=0) return '—';
-  const h=Math.floor(mins/60), m=Math.round(mins%60);
-  return h>0 ? `${h}h ${String(m).padStart(2,'0')}min` : `${m} min`;
-};
-const destroyed = id => { if(CHARTS[id]){CHARTS[id].destroy();delete CHARTS[id];} };
-const gtc = () => getComputedStyle(document.documentElement).getPropertyValue('--text3').trim()||'#64748B';
-const gc  = () => 'rgba(128,128,128,.08)';
-// Validar que un valor es usable para cálculos
-const isValid = v => v!==null && v!==undefined && !isNaN(v) && isFinite(v);
-
-// ── LOADING BAR ──────────────────────────────────────
-function setLoad(pctV, msg) {
-  document.getElementById('loadingBar').style.width = pctV+'%';
-  document.getElementById('loadingText').textContent = msg;
-}
-function hideLoad() {
-  const el = document.getElementById('loadingOverlay');
-  if (!el) return;
-  el.classList.add('hidden');
-  setTimeout(() => { if(el.parentNode) el.style.display='none'; }, 600);
-}
-
-// ── API FETCH ────────────────────────────────────────
 /* ═══════════════════════════════════════════════════════════
-   SISTEMA ROBUSTO DE CARGA DE DATOS — v2.0
-   Maneja: CORS, redirects, timeout, JSON inválido, red offline,
-   Apps Script 302, file:///, GitHub Pages, Chrome/Edge/Firefox
+   HEEL Colombia · Torre de Control Operativa
+   Arquitectura: API → DataEngine → FilterEngine → RenderEngine
+   Versión: 3.0 (refactorizada)
 ═══════════════════════════════════════════════════════════ */
 
-// ── DIAGNÓSTICO LOGGER ──────────────────────────────────
-const diagLog = [];
-function dLog(msg, level='info') {
-  const ts = new Date().toLocaleTimeString('es-CO');
-  const prefix = level==='error'?'❌':level==='warn'?'⚠️':level==='ok'?'✅':'ℹ️';
-  const line = `[${ts}] ${prefix} ${msg}`;
-  diagLog.push(line);
-  console[level==='error'?'error':level==='warn'?'warn':'log']('[HEEL API]', msg);
-  const el = document.getElementById('diagLog');
-  if (el) { el.textContent = diagLog.slice(-50).join('\n'); el.scrollTop = el.scrollHeight; }
+// ── CONFIGURACIÓN ────────────────────────────────────────
+const API_URL     = 'https://script.google.com/macros/s/AKfycbxnNu4ib2CXKC5bdGYnbvIJ-C-X1eMCdvOMlcbJeCWDZ8sk6AtUkX6lg21nvf5tM2SdzA/exec';
+const REFRESH_MS  = 5 * 60 * 1000;  // 5 minutos
+const METAS       = { cumplimiento:95, efectividad:97, novedades:3, cancelaciones:2 };
+const CITY_COORDS = {
+  BOGOTA:[4.7110,-74.0721], MEDELLIN:[6.2442,-75.5812], CALI:[3.4516,-76.5320],
+  BARRANQUILLA:[10.9639,-74.7964], CARTAGENA:[10.3910,-75.4794], BUCARAMANGA:[7.1193,-73.1227],
+  PEREIRA:[4.8133,-75.6961], IBAGUE:[4.4389,-75.2322], MANIZALES:[5.0703,-75.5138],
+  NEIVA:[2.9273,-75.2819], TUNJA:[5.5353,-73.3678], MONTERIA:[8.7479,-75.8814],
+  CHIA:[4.8606,-74.0565], CUCUTA:[7.8939,-72.5078],
+};
+
+// ── ESTADO GLOBAL ────────────────────────────────────────
+let RAW      = [];   // servicios procesados (inmutable tras carga)
+let TICKETS  = [];   // tabla de tickets procesada
+let FILTERED = [];   // vista filtrada activa
+let CHARTS   = {};
+let dtTable  = null;
+let leafletMap = null, leafletLayers = {};
+let mapLayerMode = 'cumpl', tendGran = 'mes', farmView = 'srv';
+let refreshTimer = null;
+
+// ── HELPERS ──────────────────────────────────────────────
+const safe   = v => (v != null && !isNaN(v) && isFinite(v)) ? v : 0;
+const fmt    = (n, d=0) => (n == null || isNaN(n) || !isFinite(n)) ? 'Sin info'
+                           : Number(n).toLocaleString('es-CO', {minimumFractionDigits:d, maximumFractionDigits:d});
+const fmtCOP = v => (!v || isNaN(v) || !isFinite(v) || v <= 0) ? '—'
+                  : '$ ' + Number(Math.round(v)).toLocaleString('es-CO');
+const fmtMin = m => {
+  if (!m || isNaN(m) || m <= 0) return '—';
+  const h = Math.floor(m / 60), mm = Math.round(m % 60);
+  return h > 0 ? `${h}h ${String(mm).padStart(2,'0')}min` : `${mm} min`;
+};
+const pct  = (a, b) => (b && b > 0) ? Math.round(a / b * 10000) / 100 : 0;
+const pf   = (v, s='%') => (v == null || isNaN(v)) ? '—' : `${v.toFixed(1)}${s}`;
+const bc   = (v, hi, lo) => v >= hi ? 'var(--ok)' : v >= lo ? 'var(--warn)' : 'var(--danger)';
+const bcR  = (v, lo, hi) => v <= lo ? 'var(--ok)' : v <= hi ? 'var(--warn)' : 'var(--danger)';
+const gtc  = () => getComputedStyle(document.documentElement).getPropertyValue('--text3').trim() || '#64748B';
+const gc   = () => 'rgba(128,128,128,.08)';
+const d$   = id => document.getElementById(id);
+const destroyed = id => { if (CHARTS[id]) { CHARTS[id].destroy(); delete CHARTS[id]; } };
+
+// ── UI HELPERS ───────────────────────────────────────────
+function showLoading(msg='Cargando datos...') {
+  const el = d$('loadingOverlay');
+  if (el) { el.style.display = 'flex'; el.classList.remove('hidden'); }
+  const t = d$('loadingText'); if (t) t.textContent = msg;
 }
-function diagSet(id, val, cls='') {
-  const el = document.getElementById(id);
+function hideLoading() {
+  const el = d$('loadingOverlay');
   if (!el) return;
-  el.textContent = val;
-  el.className = 'diag-val' + (cls ? ' '+cls : '');
+  el.classList.add('hidden');
+  setTimeout(() => { el.style.display = 'none'; }, 500);
 }
-function toggleDiag() {
-  const p = document.getElementById('diagPanel');
-  p.style.display = p.style.display==='block' ? 'none' : 'block';
+function showError(title, msg) {
+  hideLoading();
+  const ov = d$('errorOverlay');
+  if (ov) ov.style.display = 'flex';
+  const t = d$('errorTitle'), m = d$('errorMsg');
+  if (t) t.textContent = title;
+  if (m) m.textContent = msg;
+  // Update status pill
+  const dot = d$('apiDot'), st = d$('apiStatus');
+  if (dot) dot.style.background = '#EF4444';
+  if (st)  st.textContent = 'Error de conexión';
 }
-function clearDiagLog() {
-  diagLog.length=0;
-  const el=document.getElementById('diagLog');
-  if(el) el.textContent='Log limpiado.';
+function hideError() {
+  const ov = d$('errorOverlay');
+  if (ov) ov.style.display = 'none';
 }
-function copyDiagLog() {
-  navigator.clipboard?.writeText(diagLog.join('\n'))
-    .then(()=>alert('Log copiado al portapapeles'))
-    .catch(()=>prompt('Copia manualmente:', diagLog.join('\n')));
-}
-
-// ── CLASIFICADOR DE ERRORES ──────────────────────────────
-function classifyError(err, url) {
-  const msg = String(err?.message || err || '');
-  let tipo='', causa='', solucion='';
-
-  if (msg.includes('Failed to fetch') || msg.includes('NetworkError') || msg.includes('fetch')) {
-    tipo = '🔴 CORS / Red';
-    causa = 'El navegador bloqueó la solicitud por política CORS, o no hay conexión a internet.';
-    solucion = 'Google Apps Script requiere que el script esté publicado como "cualquier persona, incluso anónimos". Verifica la publicación del script.';
-  } else if (msg.includes('AbortError') || msg.includes('timeout')) {
-    tipo = '⏱ TIMEOUT';
-    causa = 'La API no respondió en 30 segundos.';
-    solucion = 'Verifica que la URL de Apps Script sea correcta y que el script no tenga errores internos.';
-  } else if (msg.includes('JSON') || msg.includes('SyntaxError') || msg.includes('Unexpected')) {
-    tipo = '📄 JSON Inválido';
-    causa = 'La API respondió pero el contenido no es JSON válido.';
-    solucion = 'Puede ser una página de error HTML de Google. Verifica en el Apps Script Editor que el script funcione correctamente.';
-  } else if (msg.includes('HTTP 404')) {
-    tipo = '🔗 URL Incorrecta (404)';
-    causa = 'La URL del script no existe o fue eliminada.';
-    solucion = 'Verifica la URL en el Apps Script Editor → Implementar → Administrar implementaciones.';
-  } else if (msg.includes('HTTP 403') || msg.includes('HTTP 401')) {
-    tipo = '🔐 Permisos (403/401)';
-    causa = 'El script no tiene permisos para ser ejecutado por usuarios anónimos.';
-    solucion = 'En Apps Script: Implementar → Nueva implementación → Acceso: "Cualquier persona".';
-  } else if (msg.includes('HTTP 500') || msg.includes('HTTP 502')) {
-    tipo = '⚙️ Error de servidor (500)';
-    causa = 'El script de Google Apps Script tiene un error interno.';
-    solucion = 'Abre el Apps Script Editor y revisa los logs de ejecución.';
-  } else if (window.location.protocol === 'file:') {
-    tipo = '📁 Protocolo file:///';
-    causa = 'Desde file:// algunos navegadores bloquean solicitudes externas.';
-    solucion = 'Usa un servidor local (npx serve, Live Server de VS Code) o publica en GitHub Pages.';
-  } else {
-    tipo = '❓ Error desconocido';
-    causa = msg || 'Sin detalles adicionales';
-    solucion = 'Revisa la consola del navegador (F12) para más información.';
-  }
-  return {tipo, causa, solucion, msg};
+function setAPIStatus(ok, msg, count) {
+  const dot = d$('apiDot'), st = d$('apiStatus'), rc = d$('recCount'), rt = d$('refreshTime');
+  if (dot) dot.style.background = ok ? '#4ADE80' : '#EF4444';
+  if (st)  st.textContent = ok ? `API OK · ${count || ''}` : 'Error';
+  if (rc && count) rc.textContent = count + ' servicios';
+  if (rt) rt.textContent = 'Actualizado: ' + new Date().toLocaleTimeString('es-CO');
 }
 
-// ── FETCH ROBUSTO CON TIMEOUT ────────────────────────────
-async function fetchWithTimeout(url, options={}, timeoutMs=30000) {
-  const controller = new AbortController();
-  const timeoutId  = setTimeout(()=>controller.abort(), timeoutMs);
-
-  dLog(`Iniciando fetch → ${url}`);
-  diagSet('dUrl', url);
-  diagSet('dMethod', 'GET + redirect:follow + cache:no-store');
-
-  try {
-    const res = await fetch(url, {
-      method: 'GET',
-      mode: 'cors',
-      credentials: 'omit',
-      redirect: 'follow',
-      cache: 'no-store',
-      signal: controller.signal,
-      ...options,
-    });
-    clearTimeout(timeoutId);
-    dLog(`HTTP ${res.status} ${res.statusText}`, res.ok?'ok':'warn');
-    return res;
-  } catch(err) {
-    clearTimeout(timeoutId);
-    const errMsg = err.name==='AbortError' ? 'Timeout: La API no respondió en 30 segundos' : err.message;
-    throw new Error(errMsg);
-  }
-}
-
-// ── ESTRATEGIAS DE CARGA ─────────────────────────────────
-// La API de Apps Script puede fallar por CORS en algunos entornos.
-// Estrategia 1: fetch directo (funciona en GitHub Pages, servidores modernos)
-// Estrategia 2: URL con callback=? para JSONP (fallback para file:///)
-// Estrategia 3: proxy CORS público (último recurso)
-
-async function strategy1_directFetch(url) {
-  dLog('Estrategia 1: fetch() directo con CORS...', 'info');
-  const t0 = performance.now();
-  const res = await fetchWithTimeout(url + '&t=' + Date.now());
-  const elapsed = Math.round(performance.now()-t0);
-  diagSet('dTime', elapsed+'ms');
-  diagSet('dStatus', `${res.status} ${res.statusText}`, res.ok?'ok':'err');
-
-  // Apps Script puede devolver 200 incluso con contenido HTML de error
-  const text = await res.text();
-  dLog(`Respuesta recibida: ${text.length} bytes en ${elapsed}ms`, 'ok');
-
-  // Detectar si es HTML de error en lugar de JSON
-  if (text.trim().startsWith('<')) {
-    throw new Error('La API devolvió HTML en lugar de JSON. El script puede no estar publicado correctamente.');
-  }
-  if (!text.trim()) {
-    throw new Error('La API devolvió una respuesta vacía.');
-  }
-
-  let json;
-  try {
-    json = JSON.parse(text);
-  } catch(e) {
-    throw new Error(`JSON inválido: ${e.message}. Primeros 200 chars: ${text.slice(0,200)}`);
-  }
-  return { json, elapsed, method:'fetch directo' };
-}
-
-async function strategy2_jsonp(url) {
-  dLog('Estrategia 2: JSONP (fallback para file:///)...', 'info');
-  return new Promise((resolve, reject)=>{
-    const callbackName = 'heelCallback_' + Date.now();
-    const t0 = performance.now();
-    const script = document.createElement('script');
-    const timeout = setTimeout(()=>{
-      cleanup();
-      reject(new Error('JSONP Timeout: sin respuesta en 30s'));
-    }, 30000);
-
-    window[callbackName] = (data) => {
-      cleanup();
-      const elapsed = Math.round(performance.now()-t0);
-      dLog(`JSONP OK: ${elapsed}ms`, 'ok');
-      resolve({ json:data, elapsed, method:'JSONP' });
-    };
-
-    script.onerror = () => {
-      cleanup();
-      reject(new Error('JSONP falló: script no cargó'));
-    };
-
-    function cleanup() {
-      clearTimeout(timeout);
-      delete window[callbackName];
-      if (script.parentNode) script.parentNode.removeChild(script);
-    }
-
-    // Apps Script soporta callback= para JSONP
-    script.src = url + '&callback=' + callbackName + '&t=' + Date.now();
-    document.head.appendChild(script);
-  });
-}
-
-async function strategy3_proxyFetch(url) {
-  dLog('Estrategia 3: proxy CORS público (último recurso)...', 'warn');
-  const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url + '&t=' + Date.now())}`;
-  const t0 = performance.now();
-  const res = await fetchWithTimeout(proxyUrl, {}, 30000);
-  const elapsed = Math.round(performance.now()-t0);
-  const data = await res.json();
-  const text = data.contents || '';
-
-  if (!text.trim()) throw new Error('Proxy devolvió contenido vacío');
-  if (text.trim().startsWith('<')) throw new Error('Proxy: la API devolvió HTML en lugar de JSON');
-
-  const json = JSON.parse(text);
-  dLog(`Proxy OK: ${elapsed}ms`, 'ok');
-  return { json, elapsed, method:'proxy CORS (allorigins.win)' };
-}
-
-// ── NORMALIZAR RESPUESTA DE API ──────────────────────────
-// Detecta automáticamente si la API devuelve:
-// { servicios:[...], tickets:[...] }  → estructura dual
-// [ { ... } ]                          → array plano de servicios
-// { data:[...] }                       → wrapper genérico
-function normalizeAPIResponse(json) {
-  // Caso 1: estructura dual { servicios, tickets }
-  if (json && (json.servicios || json.Servicios || json.SERVICIOS)) {
-    dLog('Estructura detectada: { servicios, tickets }', 'ok');
-    return {
-      servicios: json.servicios || json.Servicios || json.SERVICIOS || [],
-      tickets:   json.tickets   || json.Tickets   || json.TICKETS   || [],
-    };
-  }
-  // Caso 2: array plano de servicios
-  if (Array.isArray(json)) {
-    dLog('Estructura detectada: array plano → asumiendo servicios', 'ok');
-    return { servicios: json, tickets: [] };
-  }
-  // Caso 3: wrapper con data
-  if (json && json.data && Array.isArray(json.data)) {
-    dLog('Estructura detectada: { data: [...] }', 'ok');
-    return { servicios: json.data, tickets: [] };
-  }
-  // Caso 4: objeto con rows
-  if (json && json.rows && Array.isArray(json.rows)) {
-    return { servicios: json.rows, tickets: [] };
-  }
-  // Caso 5: objeto con valores como primeras propiedades
-  const keys = Object.keys(json||{});
-  if (keys.length > 0 && Array.isArray(json[keys[0]])) {
-    dLog(`Estructura detectada: primer array bajo clave "${keys[0]}"`, 'warn');
-    return { servicios: json[keys[0]], tickets: json[keys[1]] || [] };
-  }
-  dLog('WARN: estructura de API no reconocida', 'warn');
-  dLog('Claves disponibles: ' + Object.keys(json||{}).join(', '), 'warn');
-  return { servicios: [], tickets: [] };
-}
-
-// ── FUNCIÓN PRINCIPAL DE CARGA ───────────────────────────
+// ── API: FETCH ÚNICO Y DIRECTO ───────────────────────────
 async function fetchAPI() {
-  setLoad(10, 'Iniciando conexión con API...');
-  document.getElementById('apiDot').style.background = '#F59E0B';
-  document.getElementById('apiStatus').textContent = 'Conectando...';
-  document.getElementById('retryPanel').style.display = 'none';
+  showLoading('Conectando con la API...');
+  hideError();
 
-  const url = API_URL;
-  diagSet('dUrl', url);
-  diagSet('dError', 'Ninguno', '');
-  diagSet('dErrType', '—');
-  dLog('=== NUEVA SOLICITUD A API ===');
-  dLog(`URL: ${url}`);
-  dLog(`Protocolo: ${window.location.protocol}`);
-  dLog(`Origen: ${window.location.origin}`);
+  try {
+    const response = await fetch(API_URL, {
+      method: 'GET',
+      cache: 'no-store'
+    });
 
-  const strategies = [strategy1_directFetch, strategy2_jsonp, strategy3_proxyFetch];
-  let lastError = null;
-  let result    = null;
-
-  for (let i=0; i<strategies.length; i++) {
-    const pct = 20 + i*25;
-    setLoad(pct, `Intentando método ${i+1}/3...`);
-    try {
-      result = await strategies[i](url);
-      dLog(`✓ Método ${i+1} exitoso: ${result.method}`, 'ok');
-      diagSet('dMethod', result.method, 'ok');
-      break;
-    } catch(err) {
-      lastError = err;
-      const classified = classifyError(err, url);
-      dLog(`✗ Método ${i+1} falló: ${err.message}`, 'error');
-      diagSet('dError', err.message, 'err');
-      diagSet('dErrType', classified.tipo, 'warn');
-
-      if (i<strategies.length-1) {
-        dLog(`Intentando siguiente método...`, 'warn');
-        await new Promise(r=>setTimeout(r, 800));
-      }
+    if (!response.ok) {
+      throw new Error(`La API respondió con error ${response.status}.`);
     }
+
+    const data = await response.json();
+
+    if (!data || typeof data !== 'object') {
+      throw new Error('No se recibieron datos válidos de la API.');
+    }
+
+    processData(data);
+    setAPIStatus(true, 'OK', RAW.length.toLocaleString('es-CO'));
+    hideLoading();
+    hideError();
+    populateFilters();
+    applyFilters();
+    startRefreshTimer();
+    console.log('[HEEL] API cargada correctamente.', RAW.length, 'servicios,', TICKETS.length, 'tickets');
+
+  } catch (err) {
+    console.error('[HEEL] Error de API:', err.message);
+    // Mensajes amigables según tipo de error
+    let title = '❌ No fue posible conectar con la API.';
+    let msg   = 'Verifica tu conexión a internet e intenta nuevamente.';
+    if (err.message.includes('404'))  { title = '❌ La API respondió con error 404.';  msg = 'La URL del script no existe o fue eliminada.'; }
+    if (err.message.includes('500'))  { title = '❌ La API respondió con error 500.';  msg = 'El script de Google Apps Script tiene un error interno.'; }
+    if (err.message.includes('403'))  { title = '❌ La API respondió con error 403.';  msg = 'El script no está publicado para acceso público.'; }
+    if (err.message.includes('datos')){ title = '❌ No se recibieron datos.'; msg = 'La API respondió pero no envió información válida.'; }
+    showError(title, msg);
   }
-
-  // ── TODOS LOS MÉTODOS FALLARON ───────────────────────
-  if (!result) {
-    const classified = classifyError(lastError, url);
-    dLog('TODOS los métodos fallaron. Mostrando panel de error.', 'error');
-
-    document.getElementById('apiDot').style.background = '#EF4444';
-    document.getElementById('apiStatus').textContent = 'Error de conexión';
-    document.getElementById('retryPanel').style.display = 'block';
-    document.getElementById('retryTitle').textContent = classified.tipo;
-    document.getElementById('retrySub').textContent   = classified.causa + '\n' + classified.solucion;
-    document.getElementById('retryCode').textContent  = `Error técnico: ${classified.msg}\n\nURL: ${url}\nProtocolo: ${window.location.protocol}`;
-
-    setLoad(0, 'Error al cargar datos');
-    // No ocultar loading si es el primer intento
-    hideLoad();
-
-    console.group('[HEEL API] Error de conexión');
-    console.error('Tipo:', classified.tipo);
-    console.error('Causa:', classified.causa);
-    console.error('Solución:', classified.solucion);
-    console.error('Error:', lastError);
-    console.groupEnd();
-
-    // Reintentar automáticamente en 30s
-    setTimeout(()=>{
-      dLog('Reintentando automáticamente...', 'warn');
-      fetchAPI();
-    }, 30000);
-    return;
-  }
-
-  // ── PROCESAR RESPUESTA EXITOSA ───────────────────────
-  setLoad(75, 'Normalizando estructura de datos...');
-  const normalized = normalizeAPIResponse(result.json);
-  dLog(`Servicios: ${normalized.servicios.length} | Tickets: ${normalized.tickets.length}`, 'ok');
-  diagSet('dRecords', `${normalized.servicios.length} servicios · ${normalized.tickets.length} tickets`, 'ok');
-
-  setLoad(85, 'Procesando datos operativos...');
-  processData(normalized);
-
-  setLoad(95, 'Construyendo dashboard...');
-  await new Promise(r=>setTimeout(r, 150));
-
-  lastRefresh = new Date();
-  const ts = lastRefresh.toLocaleTimeString('es-CO');
-  document.getElementById('apiDot').style.background   = '#4ADE80';
-  document.getElementById('apiStatus').textContent     = `API OK · ${(normalized.servicios.length).toLocaleString('es-CO')} registros`;
-  document.getElementById('recCount').textContent      = (normalized.servicios.length).toLocaleString('es-CO') + ' servicios';
-  document.getElementById('refreshTime').textContent   = ts;
-  diagSet('dLastUpdate', ts, 'ok');
-
-  dLog(`Dashboard listo. ${normalized.servicios.length} servicios procesados.`, 'ok');
-  setLoad(100, '¡Dashboard listo!');
-  await new Promise(r=>setTimeout(r, 250));
-  hideLoad();
-
-  populateFilters();
-  applyFilters();
-  startRefreshTimer();
 }
 
 // ── PROCESAR DATOS ───────────────────────────────────────
@@ -1344,8 +988,8 @@ function processData(normalized) {
   }).filter(r => r.fecha);  // Descartar filas sin fecha válida
 
   const descartados = srvRaw.length - RAW.length;
-  if (descartados > 0) dLog(`${descartados} registros descartados (sin fecha válida)`, 'warn');
-  dLog(`RAW: ${RAW.length} registros procesados`, 'ok');
+  if (descartados > 0) console.log('[HEEL]', `${descartados} registros descartados (sin fecha válida)`, 'warn');
+  console.log('[HEEL]', `RAW: ${RAW.length} registros procesados`);
 
   // Procesar TICKETS
   const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
@@ -1391,104 +1035,7 @@ function processData(normalized) {
       ticketPromedio: cnt ? Math.round(total/cnt) : 0,
     };
   });
-  dLog(`TICKETS: ${TICKETS.length} puntos de venta procesados`, 'ok');
-}
-
-// ── PROBAR CONEXIÓN (botón UI) ───────────────────────────
-async function testAPIConnection() {
-  const btn = document.getElementById('testApiBtn');
-  const origText = btn.innerHTML;
-  btn.innerHTML = '<span class="test-spin">⚙️</span> Probando...';
-  btn.disabled = true;
-  document.getElementById('diagPanel').style.display = 'block';
-  dLog('=== PRUEBA DE CONEXIÓN MANUAL ===');
-
-  const t0 = performance.now();
-  try {
-    const res = await fetchWithTimeout(API_URL + '&test=1&t=' + Date.now(), {}, 30000);
-    const elapsed = Math.round(performance.now()-t0);
-    const text = await res.text();
-
-    let records = 0, structure = 'desconocida';
-    try {
-      const j = JSON.parse(text);
-      const norm = normalizeAPIResponse(j);
-      records = norm.servicios.length;
-      structure = Array.isArray(j) ? 'array plano' : Object.keys(j).join(', ');
-    } catch(e) {
-      structure = 'JSON inválido';
-    }
-
-    diagSet('dStatus',     `${res.status} ${res.statusText}`, res.ok?'ok':'warn');
-    diagSet('dTime',       `${elapsed}ms`);
-    diagSet('dRecords',    `${records} servicios · estructura: ${structure}`, 'ok');
-    diagSet('dLastUpdate', new Date().toLocaleTimeString('es-CO'), 'ok');
-
-    dLog(`Prueba completada: HTTP ${res.status} · ${elapsed}ms · ${records} registros`, 'ok');
-    alert(`✅ API responde correctamente\n\nHTTP: ${res.status}\nTiempo: ${elapsed}ms\nRegistros: ${records}\nEstructura: ${structure}`);
-  } catch(err) {
-    const elapsed = Math.round(performance.now()-t0);
-    const classified = classifyError(err, API_URL);
-    diagSet('dStatus',  'ERROR', 'err');
-    diagSet('dTime',    `${elapsed}ms`);
-    diagSet('dError',   err.message, 'err');
-    diagSet('dErrType', classified.tipo, 'warn');
-    dLog(`Prueba fallida: ${err.message}`, 'error');
-    alert(`❌ Error al conectar con la API\n\nTipo: ${classified.tipo}\nCausa: ${classified.causa}\nSolución: ${classified.solucion}`);
-  }
-
-  btn.innerHTML = origText;
-  btn.disabled = false;
-}
-
-// ── DATOS DEMO (fallback offline) ───────────────────────
-function loadDemoData() {
-  dLog('Cargando datos de demostración (modo offline)...', 'warn');
-  const ciudades=['BOGOTA','MEDELLIN','CALI','BARRANQUILLA','CARTAGENA'];
-  const estados=['ENTREGADO','ENTREGADO','ENTREGADO','CERRADO CON NOVEDAD','CANCELACION'];
-  const novedades=['CLIENTE NO ENCONTRADO','DIRECCIÓN INCORRECTA','NEGÓ RECIBIR','NINGUNA'];
-  const ahora=new Date();
-  const demos=[];
-  for(let i=0;i<500;i++){
-    const f=new Date(ahora); f.setDate(f.getDate()-Math.floor(Math.random()*90));
-    const est=estados[Math.floor(Math.random()*estados.length)];
-    const ciu=ciudades[Math.floor(Math.random()*ciudades.length)];
-    demos.push({
-      guia:`DEMO-${i+1}`,
-      estado:est,
-      fecha_creacion:f.toISOString().slice(0,10),
-      ciudad_2:ciu,
-      punto_venta:`HEEL FARMACIA ${ciu} ${(i%5)+1}`,
-      novedad:est==='CERRADO CON NOVEDAD'?novedades[Math.floor(Math.random()*3)]:'NINGUNA',
-      tiempo_entrega:`${Math.floor(Math.random()*120)}:${String(Math.floor(Math.random()*60)).padStart(2,'0')}:00`,
-      cumplimiento:Math.random()>.15?'CUMPLE':'NO CUMPLE',
-      mes_data:['ENERO','FEBRERO','MARZO','ABRIL','MAYO'][f.getMonth()%5],
-    });
-  }
-  processData({servicios:demos, tickets:[]});
-  document.getElementById('retryPanel').style.display='none';
-  document.getElementById('apiDot').style.background='#F59E0B';
-  document.getElementById('apiStatus').textContent='MODO DEMO (sin API)';
-  document.getElementById('recCount').textContent='500 servicios demo';
-  hideLoad();
-  populateFilters();
-  applyFilters();
-  showToastMsg('Modo demo activado. Los datos no son reales.','warn');
-  dLog('500 registros demo cargados', 'warn');
-}
-
-// ── TOAST MENSAJE ────────────────────────────────────────
-function showToastMsg(msg, type='info') {
-  const t=document.createElement('div');
-  t.style.cssText=`position:fixed;top:70px;right:16px;z-index:9999;
-    padding:10px 16px;border-radius:8px;font-size:12px;font-weight:600;
-    animation:slideIn .3s ease;max-width:320px;
-    background:${type==='warn'?'rgba(245,158,11,.15)':'rgba(16,185,129,.15)'};
-    border:1px solid ${type==='warn'?'rgba(245,158,11,.4)':'rgba(16,185,129,.4)'};
-    color:${type==='warn'?'#F59E0B':'#10B981'};`;
-  t.textContent=msg;
-  document.body.appendChild(t);
-  setTimeout(()=>{t.style.opacity='0';t.style.transition='opacity .3s';setTimeout(()=>t.remove(),300)},4000);
+  console.log('[HEEL]', `TICKETS: ${TICKETS.length} puntos de venta procesados`);
 }
 
 
@@ -2237,21 +1784,25 @@ function toggleTheme(){
 // ── AUTO REFRESH ──────────────────────────────────────
 function startRefreshTimer(){
   clearInterval(refreshTimer);
-  refreshTimer=setInterval(()=>{
-    document.getElementById('refreshIcon').classList.add('r-spin');
-    fetchAPI().finally(()=>document.getElementById('refreshIcon').classList.remove('r-spin'));
-  },REFRESH_MS);
+  refreshTimer = setInterval(() => {
+    console.log('[HEEL] Auto-refresh de 5 minutos...');
+    fetchAPI();
+  }, REFRESH_MS);
 }
 
 function forceRefresh(){
-  const el=document.getElementById('forceRefreshIcon');
-  if(el) el.style.animation='spin .5s linear infinite';
-  fetchAPI().finally(()=>{if(el) el.style.animation='';});
+  const el = d$('forceRefreshIcon');
+  if (el) el.style.animation = 'spin .6s linear infinite';
+  fetchAPI().finally(() => { if (el) el.style.animation = ''; });
 }
 
 // ── INIT ─────────────────────────────────────────────
 Chart.defaults.font.family="'Segoe UI',system-ui,sans-serif";
 Chart.defaults.color='#8BA3C0';
+fetchAPI();
+// ── ARRANQUE ─────────────────────────────────────────────
+Chart.defaults.font.family = "'Segoe UI',system-ui,sans-serif";
+Chart.defaults.color = '#8BA3C0';
 fetchAPI();
 </script>
 </body>
