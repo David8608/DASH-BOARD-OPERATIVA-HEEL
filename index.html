@@ -215,12 +215,12 @@ main{padding-top:var(--space-8);}
 .card.hoverable:hover{box-shadow:var(--shadow-hover); transform:translateY(-2px);}
 
 .grid{display:grid; gap:var(--space-5);}
-.grid-kpi{grid-template-columns:repeat(9, 1fr);}
+.grid-kpi{grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));}
 .grid-2{grid-template-columns:1fr 1fr;}
 .grid-3{grid-template-columns:1fr 1fr 1fr;}
 .grid-map{grid-template-columns:2.3fr 1fr;}
 .grid-idx{grid-template-columns:1fr 2fr;}
-@media (max-width:1400px){ .grid-kpi{grid-template-columns:repeat(3,1fr);} .grid-map{grid-template-columns:1fr;} }
+@media (max-width:1400px){ .grid-map{grid-template-columns:1fr;} }
 @media (max-width:900px){ .grid-2,.grid-3,.grid-idx{grid-template-columns:1fr;} }
 
 /* KPI cards */
@@ -370,6 +370,7 @@ footer.app-footer{text-align:center; padding:var(--space-8) 0; font-size:12px; c
     <div class="field"><label>Cumplimiento</label><select id="fCumplimiento"><option value="">Todos</option><option value="cumple">Cumple</option><option value="nocumple">No cumple</option></select></div>
     <div class="field"><label>Novedad</label><select id="fNovedad"><option value="">Todas</option></select></div>
     <div class="field"><label>Franja horaria</label><select id="fFranja"><option value="">Todas</option></select></div>
+    <div class="field"><label>Tipo de negocio</label><select id="fTipoNegocio"><option value="">Todos</option></select></div>
     <div class="filters-actions">
       <button class="btn btn-primary btn-sm" id="btnAplicar">Aplicar</button>
       <button class="btn btn-sm" id="btnLimpiar">Limpiar</button>
@@ -577,7 +578,7 @@ function esCumplido(valor, estadoValor){
 function esNovedadValida(valor){
   const n = normalizarTexto(valor);
   if(!n) return false;
-  if(["ninguna","n/a","na","no aplica","sin novedad","-","ninguno"].includes(n)) return false;
+  if(["ninguna","n/a","na","no aplica","sin novedad","-","ninguno","#n/d","n/d","nd"].includes(n)) return false;
   return true;
 }
 
@@ -638,6 +639,9 @@ const RESPONSABLES_DEMO = ["C. Ramírez","J. Torres","M. Gómez","L. Peña","A. 
 const NOVEDADES_DEMO = ["Ninguna","Ninguna","Ninguna","Dirección errada","Cliente ausente","Producto averiado","Retraso en tránsito","Rechazo del cliente","Zona de difícil acceso"];
 const ESTADOS_DEMO = ["Entregado","Entregado","Entregado","Cerrado con novedad","Anulado","En tránsito"];
 const FRANJAS_DEMO = ["07:00 - 09:00","09:00 - 11:00","11:00 - 13:00","13:00 - 15:00","15:00 - 17:00","17:00 - 19:00"];
+const TIPOS_NEGOCIO_DEMO = ["PACIENTE","PACIENTE","VINCULADO","VINCULADO","ADMINISTRATIVO","CONSIGNACION"];
+const MOTIVOS_INCUMPLIMIENTO_DEMO = ["NOVEDAD CALL","HORA DE ALMUERZO","DEMORA CLIENTE","RUTA > 2 PEDIDOS","ALTO VOLUMEN PEDIDOS","NOVEDAD APP","ALTO TRAFICO","DEMORA ALISTAMIENTO PDV"];
+const RESPONSABLES_INCUMPLIMIENTO_DEMO = ["CALL","CLIENTE","HEEL","QUICK","FACTOR EXTERNO"];
 
 function generarDatosDemo(cantidad = 9000){
   const filas = [];
@@ -655,13 +659,17 @@ function generarDatosDemo(cantidad = 9000){
     const franja = FRANJAS_DEMO[Math.floor(Math.random()*FRANJAS_DEMO.length)];
     const jitterLat = (Math.random()-0.5) * 0.18;
     const jitterLon = (Math.random()-0.5) * 0.18;
+    const tipoNegocio = TIPOS_NEGOCIO_DEMO[Math.floor(Math.random()*TIPOS_NEGOCIO_DEMO.length)];
+    const motivoIncumplimiento = cumple ? "#N/D" : MOTIVOS_INCUMPLIMIENTO_DEMO[Math.floor(Math.random()*MOTIVOS_INCUMPLIMIENTO_DEMO.length)];
+    const responsableIncumplimiento = cumple ? "#N/D" : RESPONSABLES_INCUMPLIMIENTO_DEMO[Math.floor(Math.random()*RESPONSABLES_INCUMPLIMIENTO_DEMO.length)];
     filas.push({
       fecha, fechaTexto: formatoFecha(fecha),
       guia: "GU" + (100000+i),
       ciudad: ciudad.nombre,
       punto, responsable, estado,
       cumple, novedad, tiempo,
-      franja, lat: ciudad.lat + jitterLat, lon: ciudad.lon + jitterLon
+      franja, tipoNegocio, motivoIncumplimiento, responsableIncumplimiento,
+      lat: ciudad.lat + jitterLat, lon: ciudad.lon + jitterLon
     });
   }
   return filas;
@@ -697,6 +705,7 @@ function normalizarFilasData(headers, filasCrudas){
     estado: buscarColumnaPorNombre(headers, ["estado","estado del servicio"]),
     cumplimiento: buscarColumnaPorNombre(headers, ["cumplimiento","cumple"]),
     tiempo: buscarColumnaPorNombre(headers, ["tiempo entrega","tiempo_entrega","tiempo de entrega","tiempo promedio","tiempo (min)","tiempo"]),
+    tipoNegocio: buscarColumnaPorNombre(headers, ["tipo_negocio","tipo negocio","tipo de negocio"]),
   };
   // Columnas garantizadas por posición según especificación del proyecto (se resuelven
   // primero por nombre real de encabezado y, si no existe, caen a la letra especificada)
@@ -711,6 +720,12 @@ function normalizarFilasData(headers, filasCrudas){
   idx.franja = idxFranja !== -1 ? idxFranja : letraAIndice("AK");
   idx.responsable = idxResp !== -1 ? idxResp : letraAIndice("AL");
   idx.novedad = idxNov !== -1 ? idxNov : letraAIndice("AM");
+  // Motivo y responsable REALES del incumplimiento (columnas AL y AM del sheet real:
+  // "NOVEDAD CUMPLIMIENTO" y "RESPONSABLE" -categoría de causa raíz, ej. CALL/CLIENTE/
+  // HEEL/QUICK/FACTOR EXTERNO- distintas del mensajero de la columna M). Se resuelven
+  // por posición porque el encabezado "RESPONSABLE" se repite también en la columna M.
+  idx.motivoIncumplimiento = letraAIndice("AL");
+  idx.responsableIncumplimiento = letraAIndice("AM");
 
   const filas = [];
   for(const fila of filasCrudas){
@@ -734,6 +749,9 @@ function normalizarFilasData(headers, filasCrudas){
       novedad: String(get(idx.novedad) || "").trim(),
       tiempo,
       franja: String(get(idx.franja) || "").trim(),
+      tipoNegocio: String(get(idx.tipoNegocio) || "").trim(),
+      motivoIncumplimiento: String(get(idx.motivoIncumplimiento) || "").trim(),
+      responsableIncumplimiento: String(get(idx.responsableIncumplimiento) || "").trim(),
       lat, lon
     });
   }
@@ -927,10 +945,32 @@ function construirLayout(){
       </div>
     </section>
 
-    <!-- MÓDULO 7: TICKET PROMEDIO -->
+    <!-- MÓDULO 7: SEGMENTACIÓN POR TIPO DE NEGOCIO -->
     <section class="module">
       <div class="module-head">
-        <div><span class="module-eyebrow">Módulo 7</span><h2>Ticket Promedio</h2></div>
+        <div><span class="module-eyebrow">Módulo 7</span><h2>Segmentación por Tipo de Negocio</h2></div>
+        <div class="module-sub">Paciente, Vinculado, Administrativo y Consignación — volumen y tiempo de gestión</div>
+      </div>
+      <div class="card"><div class="table-scroll" id="tablaTipoNegocio"></div></div>
+    </section>
+
+    <!-- MÓDULO 8: PEDIDOS SIN CUMPLIMIENTO DE ENTREGA -->
+    <section class="module">
+      <div class="module-head">
+        <div><span class="module-eyebrow">Módulo 8</span><h2>Pedidos sin Cumplimiento de Entrega</h2></div>
+        <div class="module-sub">Motivo real y responsable de cada incumplimiento (columnas Novedad Cumplimiento / Responsable)</div>
+      </div>
+      <div class="grid grid-kpi" style="margin-bottom:20px;" id="kpiSinCumplimiento"></div>
+      <div class="grid grid-2">
+        <div class="card"><h3 class="mini-title">Por motivo</h3><div class="chart-box tall"><canvas id="chartMotivoIncumplimiento"></canvas></div></div>
+        <div class="card"><h3 class="mini-title">Por responsable</h3><div id="rankResponsableIncumplimiento"></div></div>
+      </div>
+    </section>
+
+    <!-- MÓDULO 9: TICKET PROMEDIO -->
+    <section class="module">
+      <div class="module-head">
+        <div><span class="module-eyebrow">Módulo 9</span><h2>Ticket Promedio</h2></div>
         <div class="module-sub">Fuente: hoja Promoción de Entradas</div>
       </div>
       <div class="grid grid-3">
@@ -944,10 +984,10 @@ function construirLayout(){
       <div class="card" style="margin-top:20px;"><h3 class="mini-title">Tabla comparativa</h3><div class="table-scroll" id="tablaTicket"></div></div>
     </section>
 
-    <!-- MÓDULO 8: RANKING NACIONAL -->
+    <!-- MÓDULO 10: RANKING NACIONAL -->
     <section class="module">
       <div class="module-head">
-        <div><span class="module-eyebrow">Módulo 8</span><h2>Ranking Nacional</h2></div>
+        <div><span class="module-eyebrow">Módulo 10</span><h2>Ranking Nacional</h2></div>
         <div class="module-sub">Comparativo consolidado de todas las dimensiones operativas</div>
       </div>
       <div class="grid grid-3">
@@ -965,7 +1005,7 @@ function construirLayout(){
     <!-- MÓDULO 9: CENTRO DE ALERTAS -->
     <section class="module">
       <div class="module-head">
-        <div><span class="module-eyebrow">Módulo 9</span><h2>Centro de Alertas</h2></div>
+        <div><span class="module-eyebrow">Módulo 11</span><h2>Centro de Alertas</h2></div>
         <div class="module-sub">Generadas automáticamente a partir de los datos filtrados</div>
       </div>
       <div class="card" id="panelAlertas"></div>
@@ -974,7 +1014,7 @@ function construirLayout(){
     <!-- MÓDULO 10: INSIGHTS DEL DÍA -->
     <section class="module">
       <div class="module-head">
-        <div><span class="module-eyebrow">Módulo 10</span><h2>Insights del Día</h2></div>
+        <div><span class="module-eyebrow">Módulo 12</span><h2>Insights del Día</h2></div>
         <div class="module-sub">Lectura automática del comportamiento operativo</div>
       </div>
       <div class="card" id="panelInsights"></div>
@@ -983,7 +1023,7 @@ function construirLayout(){
     <!-- MÓDULO 11: MAPA NACIONAL DE SERVICIOS -->
     <section class="module">
       <div class="module-head">
-        <div><span class="module-eyebrow">Módulo 11</span><h2>Mapa Nacional de Servicios</h2></div>
+        <div><span class="module-eyebrow">Módulo 13</span><h2>Mapa Nacional de Servicios</h2></div>
         <div class="module-sub">Herramienta de análisis operativo y cobertura geográfica</div>
       </div>
       <div class="card" id="mapCard">
@@ -1027,7 +1067,7 @@ function construirLayout(){
     <!-- MÓDULO 12: TABLA OPERATIVA -->
     <section class="module">
       <div class="module-head">
-        <div><span class="module-eyebrow">Módulo 12</span><h2>Tabla Operativa</h2></div>
+        <div><span class="module-eyebrow">Módulo 14</span><h2>Tabla Operativa</h2></div>
         <div class="module-sub">Detalle completo de servicios filtrados</div>
       </div>
       <div class="card">
@@ -1084,6 +1124,7 @@ function poblarFiltros(){
   poblarSelect('fEstado', STATE.data.map(d=>d.estado));
   poblarSelect('fNovedad', STATE.data.map(d=>d.novedad).filter(esNovedadValida));
   poblarSelect('fFranja', STATE.data.map(d=>d.franja));
+  poblarSelect('fTipoNegocio', STATE.data.map(d=>d.tipoNegocio));
 
   const fechasValidas = STATE.data.map(d=>d.fecha).filter(Boolean);
   if(fechasValidas.length){
@@ -1113,7 +1154,8 @@ function leerFiltrosActuales(){
     estado: document.getElementById('fEstado').value,
     cumplimiento: document.getElementById('fCumplimiento').value,
     novedad: document.getElementById('fNovedad').value,
-    franja: document.getElementById('fFranja').value
+    franja: document.getElementById('fFranja').value,
+    tipoNegocio: document.getElementById('fTipoNegocio').value
   };
 }
 
@@ -1128,6 +1170,7 @@ function coincideFiltros(fila, f){
   if(f.cumplimiento === 'nocumple' && fila.cumple !== false) return false;
   if(f.novedad && fila.novedad !== f.novedad) return false;
   if(f.franja && fila.franja !== f.franja) return false;
+  if(f.tipoNegocio && fila.tipoNegocio !== f.tipoNegocio) return false;
   return true;
 }
 
@@ -1160,6 +1203,7 @@ function limpiarFiltros(){
   document.getElementById('fCumplimiento').value = "";
   document.getElementById('fNovedad').value = "";
   document.getElementById('fFranja').value = "";
+  document.getElementById('fTipoNegocio').value = "";
   const fechasValidas = STATE.data.map(d=>d.fecha).filter(Boolean);
   if(fechasValidas.length){
     document.getElementById('fFechaIni').value = toInputDate(new Date(Math.min(...fechasValidas)));
@@ -1175,6 +1219,7 @@ function calcularMetricas(filas){
   const total = filas.length;
   const entregados = filas.filter(f=>normalizarTexto(f.estado).includes('entreg')).length;
   const cerradosNovedad = filas.filter(f=>normalizarTexto(f.estado).includes('novedad')).length;
+  const cancelados = filas.filter(f=>normalizarTexto(f.estado).includes('cancel')).length;
   const conCumpleDefinido = filas.filter(f=>f.cumple !== null);
   const cumplen = conCumpleDefinido.filter(f=>f.cumple === true).length;
   const cumplimiento = conCumpleDefinido.length ? (cumplen/conCumpleDefinido.length*100) : null;
@@ -1184,7 +1229,7 @@ function calcularMetricas(filas){
   const novedadesCount = filas.filter(f=>esNovedadValida(f.novedad)).length;
   const ciudadesActivas = new Set(filas.map(f=>f.ciudad).filter(Boolean)).size;
   const puntosActivos = new Set(filas.map(f=>f.punto).filter(Boolean)).size;
-  return { total, entregados, cerradosNovedad, cumplimiento, efectividad, tiempoProm, novedadesCount, ciudadesActivas, puntosActivos };
+  return { total, entregados, cerradosNovedad, cancelados, cumplimiento, efectividad, tiempoProm, novedadesCount, ciudadesActivas, puntosActivos };
 }
 
 function calcularTicketPromedio(promoFilas, filtros){
@@ -1260,6 +1305,7 @@ function renderKPIs(){
     { label:"Total servicios", valor:formatoNumero(m.total), icon:"📦", color:"info", delta:calcularVariacion(m.total, mAnt.total) },
     { label:"Entregados", valor:formatoNumero(m.entregados), icon:"✅", color:"success", delta:calcularVariacion(m.entregados, mAnt.entregados) },
     { label:"Cerrados con novedad", valor:formatoNumero(m.cerradosNovedad), icon:"⚠️", color:"warning", delta:calcularVariacion(m.cerradosNovedad, mAnt.cerradosNovedad), invertido:true },
+    { label:"Cancelados", valor:formatoNumero(m.cancelados), icon:"🚫", color:"danger", delta:calcularVariacion(m.cancelados, mAnt.cancelados), invertido:true },
     { label:"Cumplimiento", valor:formatoPct(m.cumplimiento), icon:"🎯", color:"info", delta:calcularVariacion(m.cumplimiento, mAnt.cumplimiento) },
     { label:"Efectividad", valor:formatoPct(m.efectividad), icon:"📈", color:"success", delta:calcularVariacion(m.efectividad, mAnt.efectividad) },
     { label:"Tiempo promedio", valor:(m.tiempoProm!==null? formatoNumero(m.tiempoProm,0)+" min":"N/D"), icon:"⏱️", color:"warning", delta:calcularVariacion(m.tiempoProm, mAnt.tiempoProm), invertido:true },
@@ -1538,8 +1584,68 @@ function renderNovedades(){
 }
 
 /* ---------------------------------------------------------------
-   16. RENDER — MÓDULO 7: TICKET PROMEDIO (hoja PROMOCIÓN DE ENTRADAS)
+   16B. RENDER — MÓDULO 7: SEGMENTACIÓN POR TIPO DE NEGOCIO
    --------------------------------------------------------------- */
+function renderTipoNegocio(){
+  const filas = STATE.filtered.filter(f=>f.tipoNegocio && f.tipoNegocio.trim() !== "");
+  const agregado = agregarPor(filas, 'tipoNegocio').sort((a,b)=>b.total-a.total);
+  if(!agregado.length){
+    document.getElementById('tablaTipoNegocio').innerHTML = `<div class="empty-note">La columna "tipo_negocio" no se encontró en la hoja DATA o no tiene datos para este filtro.</div>`;
+    return;
+  }
+  const totalGeneral = agregado.reduce((s,a)=>s+a.total,0);
+  document.getElementById('tablaTipoNegocio').innerHTML = `
+    <table class="data-table"><thead><tr>
+      <th>Tipo de negocio</th><th>Servicios</th><th>%</th><th>Tiempo de gestión promedio</th><th>Cumplimiento</th>
+    </tr></thead><tbody>
+      ${agregado.map(a=>`
+        <tr>
+          <td>${a.nombre}</td>
+          <td class="num">${formatoNumero(a.total)}</td>
+          <td class="num">${formatoPct(totalGeneral? a.total/totalGeneral*100:0)}</td>
+          <td class="num">${a.tiempoProm!==null? formatoNumero(a.tiempoProm,0)+' min':'N/D'}</td>
+          <td class="num">${formatoPct(a.cumplimiento)}</td>
+        </tr>`).join('')}
+    </tbody></table>`;
+}
+
+/* ---------------------------------------------------------------
+   16C. RENDER — MÓDULO 8: PEDIDOS SIN CUMPLIMIENTO DE ENTREGA
+   (columnas reales "Novedad Cumplimiento" y "Responsable" -causa raíz-)
+   --------------------------------------------------------------- */
+function renderPedidosSinCumplimiento(){
+  const filas = STATE.filtered.filter(f=>f.cumple === false);
+  const conMotivo = filas.filter(f=>esNovedadValida(f.motivoIncumplimiento));
+  const dias = new Set(filas.map(f=>f.fecha ? toInputDate(f.fecha) : null).filter(Boolean));
+  const promedioDia = dias.size ? filas.length/dias.size : null;
+
+  const tarjetas = [
+    { label:"Pedidos sin cumplimiento", valor:formatoNumero(filas.length), icon:"🔴", color:"danger" },
+    { label:"Promedio por día", valor: promedioDia!==null? formatoNumero(promedioDia,1) : "N/D", icon:"📅", color:"warning" },
+    { label:"% sobre el total filtrado", valor: STATE.filtered.length? formatoPct(filas.length/STATE.filtered.length*100) : "N/D", icon:"📉", color:"warning" }
+  ];
+  document.getElementById('kpiSinCumplimiento').innerHTML = tarjetas.map(t=>`
+    <div class="card kpi-card hoverable">
+      <div class="kpi-top"><span class="kpi-label">${t.label}</span><div class="kpi-icon" style="background:var(--${t.color}-bg); color:var(--${t.color});">${t.icon}</div></div>
+      <div class="kpi-value">${t.valor}</div>
+    </div>`).join('');
+
+  const colores = estiloEjes();
+  const porMotivo = new Map();
+  conMotivo.forEach(f=>{ const k = f.motivoIncumplimiento; porMotivo.set(k, (porMotivo.get(k)||0)+1); });
+  const motivosOrdenados = [...porMotivo.entries()].sort((a,b)=>b[1]-a[1]);
+  crearOActualizarChart('chartMotivoIncumplimiento', {
+    type:'bar',
+    data:{ labels:motivosOrdenados.map(m=>m[0]), datasets:[{ label:'Pedidos', data:motivosOrdenados.map(m=>m[1]), backgroundColor:colores.danger, borderRadius:4 }] },
+    options: opcionesBaseChart(colores, {indexAxis:'y', plugins:{legend:{display:false}}})
+  });
+
+  const conResp = filas.filter(f=>esNovedadValida(f.responsableIncumplimiento));
+  const mapaResp = new Map();
+  conResp.forEach(f=>{ const k = f.responsableIncumplimiento; mapaResp.set(k, (mapaResp.get(k)||0)+1); });
+  const rankingResp = [...mapaResp.entries()].map(([nombre,valor])=>({nombre, valor})).sort((a,b)=>b.valor-a.valor);
+  document.getElementById('rankResponsableIncumplimiento').innerHTML = listaRankingHTML(rankingResp, 10);
+}
 function renderTicketPromedio(){
   const f = leerFiltrosActuales();
   let subset = STATE.promo;
@@ -1590,7 +1696,7 @@ function renderTicketPromedio(){
 }
 
 /* ---------------------------------------------------------------
-   17. RENDER — MÓDULO 8: RANKING NACIONAL
+   17. RENDER — MÓDULO 10: RANKING NACIONAL
    --------------------------------------------------------------- */
 function renderRankingNacional(){
   const filas = STATE.filtered;
@@ -1614,7 +1720,7 @@ function renderRankingNacional(){
 }
 
 /* ---------------------------------------------------------------
-   18. RENDER — MÓDULO 9: CENTRO DE ALERTAS
+   18. RENDER — MÓDULO 11: CENTRO DE ALERTAS
    --------------------------------------------------------------- */
 function renderAlertas(){
   const filas = STATE.filtered;
@@ -1660,7 +1766,7 @@ function renderAlertas(){
 }
 
 /* ---------------------------------------------------------------
-   19. RENDER — MÓDULO 10: INSIGHTS DEL DÍA
+   19. RENDER — MÓDULO 12: INSIGHTS DEL DÍA
    --------------------------------------------------------------- */
 function renderInsights(){
   const filas = STATE.filtered;
@@ -1973,6 +2079,8 @@ function renderizarTodo(){
   renderCumplimiento();
   renderFranja();
   renderNovedades();
+  renderTipoNegocio();
+  renderPedidosSinCumplimiento();
   renderTicketPromedio();
   renderRankingNacional();
   renderAlertas();
