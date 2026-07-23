@@ -407,10 +407,10 @@ const CONFIG = {
   //     la hoja "DATA" → formato CSV → pega esa URL aquí (es la más confiable).
   //  b) Verifica que el Sheet tenga activado "Cualquier persona con el enlace" (Ver).
   CSV_URL_DATA: "https://docs.google.com/spreadsheets/d/1kxP2uGR4KOQ1wf1MpCmJOOqQv_kOKlgMRgiu9uYaxXA/gviz/tq?tqx=out:csv&gid=1023801302",
-  // URL del CSV publicado de la hoja "PROMOCIÓN DE ENTRADAS".
-  // Abre esa pestaña en el Sheet, copia el número "gid=" de la URL y reemplázalo abajo,
-  // siguiendo el mismo patrón que CSV_URL_DATA.
-  CSV_URL_PROMO: "",
+  // URL del CSV de la hoja "PROMOCIÓN DE ENTRADAS" (gid confirmado por el usuario).
+  CSV_URL_PROMO: "https://docs.google.com/spreadsheets/d/1kxP2uGR4KOQ1wf1MpCmJOOqQv_kOKlgMRgiu9uYaxXA/gviz/tq?tqx=out:csv&gid=892513436",
+  // Año que corresponde a las columnas ENERO..DICIEMBRE de Promoción de Entradas.
+  ANIO_PROMO: 2026,
   HORA_ACTUALIZACION: "09:00 AM",
   META_TIEMPO_MINUTOS: 60,     // tiempo objetivo de entrega, usado en el índice operativo
   UMBRAL_CUMPLIMIENTO: 95,     // % mínimo aceptable de cumplimiento
@@ -480,7 +480,10 @@ function parseNumero(val){
 
 function parseNumeroSimple(val){
   if(val === null || val === undefined || val === "") return null;
-  let s = String(val).trim().replace(/[^0-9.,\-]/g,"");
+  const bruto = String(val).trim();
+  // Errores de fórmula de Google Sheets: nunca deben interpretarse como 0
+  if(/^#(div\/0!?|n\/a|ref!?|value!?|name\?|null!?|num!?)$/i.test(bruto)) return null;
+  let s = bruto.replace(/[^0-9.,\-]/g,"");
   if(s.indexOf(",") !== -1 && s.indexOf(".") !== -1){
     s = s.replace(/\./g,"").replace(",",".");
   } else if(s.indexOf(",") !== -1){
@@ -493,6 +496,16 @@ function parseNumeroSimple(val){
 function parseFechaFlexible(val){
   if(!val) return null;
   const s = String(val).trim();
+
+  // Formato propio del endpoint gviz/tq de Google Sheets para columnas de tipo
+  // Fecha real: "Date(2026,0,2)" o "Date(2026,0,2,13,20,0)" — el mes viene en base 0.
+  let g = s.match(/^Date\((\d{4}),\s*(\d{1,2}),\s*(\d{1,2})(?:,\s*(\d{1,2}),\s*(\d{1,2}),\s*(\d{1,2}))?\)$/);
+  if(g){
+    const y = parseInt(g[1],10), mes0 = parseInt(g[2],10), dia = parseInt(g[3],10);
+    const fecha = new Date(y, mes0, dia);
+    if(!isNaN(fecha.getTime())) return fecha;
+  }
+
   // El sheet real usa formato M/D/AAAA (mes primero, estilo usado por el sistema de origen)
   let m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
   if(m){
@@ -517,6 +530,15 @@ function parseFechaFlexible(val){
 function parseDuracionMinutos(val){
   if(val === null || val === undefined || val === "") return null;
   const s = String(val).trim();
+
+  // gviz/tq envuelve las columnas formateadas como "Hora" con el mismo wrapper
+  // Date(AAAA,M,D,H,Mi,S) — solo interesan las tres últimas partes (hora/min/seg).
+  const g = s.match(/^Date\((\d{4}),\s*(\d{1,2}),\s*(\d{1,2}),\s*(\d{1,2}),\s*(\d{1,2}),\s*(\d{1,2})\)$/);
+  if(g){
+    const h = parseInt(g[4],10), m = parseInt(g[5],10), sec = parseInt(g[6],10);
+    return h*60 + m + sec/60;
+  }
+
   const partes = s.split(':').map(p=>p.trim());
   if(partes.length === 3){
     const h = parseFloat(partes[0].replace(',','.'));
@@ -676,21 +698,25 @@ function generarDatosDemo(cantidad = 9000){
 }
 
 function generarPromoDemo(){
-  const filas = [];
+  const largo = [];
+  const resumen = [];
   CIUDADES_DEMO.forEach(ciudad=>{
     for(let p=1;p<=ciudad.puntos;p++){
-      for(let mes=0; mes<3; mes++){
-        const fecha = new Date(); fecha.setMonth(fecha.getMonth()-mes);
-        filas.push({
-          ciudad: ciudad.nombre,
-          punto: ciudad.nombre + " - PDV " + p,
-          mes: fecha.getMonth()+1, anio: fecha.getFullYear(),
-          ticket: Math.round(38000 + Math.random()*62000)
-        });
+      const punto = ciudad.nombre + " - PDV " + p;
+      const mensajeros = 1 + Math.floor(Math.random()*2)*0.5;
+      const costo = Math.round(3000000 + Math.random()*9000000);
+      let totalGeneral = 0;
+      for(let mes=1; mes<=7; mes++){
+        const volumen = Math.round(80 + Math.random()*300);
+        const ticket = Math.round(38000 + Math.random()*62000);
+        totalGeneral += volumen;
+        largo.push({ punto, ciudad: ciudad.nombre, mes, anio: CONFIG.ANIO_PROMO, ticket, volumen });
       }
+      const ticketAnual = Math.round(38000 + Math.random()*62000);
+      resumen.push({ punto, ciudad: ciudad.nombre, clasificacion:"PUNTO", mensajeros, costo, totalGeneral, ticketAnual, costoPorServicio: totalGeneral ? costo/totalGeneral : null });
     }
   });
-  return filas;
+  return { largo, resumen };
 }
 
 /* ---------------------------------------------------------------
@@ -758,27 +784,63 @@ function normalizarFilasData(headers, filasCrudas){
   return filas;
 }
 
+const MESES_PROMO = [
+  {nombre:"ENERO", num:1}, {nombre:"FEBRERO", num:2}, {nombre:"MARZO", num:3},
+  {nombre:"ABRIL", num:4}, {nombre:"MAYO", num:5}, {nombre:"JUNIO", num:6},
+  {nombre:"JULIO", num:7}, {nombre:"AGOSTO", num:8}, {nombre:"SEPTIEMBRE", num:9},
+  {nombre:"OCTUBRE", num:10}, {nombre:"NOVIEMBRE", num:11}, {nombre:"DICIEMBRE", num:12}
+];
+
+// La hoja "PROMOCIÓN DE ENTRADAS" viene en formato ANCHO: una fila por punto de
+// venta, con un par de columnas (volumen, ticket) por cada mes del año, además
+// de Mensajeros y Costo por punto. Se pivotea a formato largo para el análisis
+// mensual, y se conserva también el resumen ancho para el módulo de Per Cápita.
 function normalizarFilasPromo(headers, filasCrudas){
   const idx = {
+    clasificacion: buscarColumnaPorNombre(headers, ["clasificacion","clasificación"]),
+    punto: buscarColumnaPorNombre(headers, ["punto de venta","punto_venta","punto"]),
     ciudad: buscarColumnaPorNombre(headers, ["ciudad"]),
-    punto: buscarColumnaPorNombre(headers, ["punto de venta","punto","pdv"]),
-    ticket: buscarColumnaPorNombre(headers, ["ticket promedio","ticket prom","ticket"]),
-    fecha: buscarColumnaPorNombre(headers, ["fecha","mes"]),
+    mensajeros: buscarColumnaPorNombre(headers, ["mensajeros"]),
+    costo: buscarColumnaPorNombre(headers, ["costo"]),
+    totalGeneral: buscarColumnaPorNombre(headers, ["total general"]),
+    ticketAnual: buscarColumnaPorNombre(headers, ["ticket promedio anual","ticket anual"]),
   };
-  const filas = [];
+  const idxMeses = MESES_PROMO.map(m => ({
+    ...m,
+    idxVolumen: buscarColumnaPorNombre(headers, [m.nombre]),
+    idxTicket: buscarColumnaPorNombre(headers, ["ticket " + m.nombre.toLowerCase()])
+  }));
+
+  const largo = [];   // una fila por punto x mes, para gráficos y rankings mensuales
+  const resumen = [];  // una fila por punto, con mensajeros/costo/total/ticket anual
+
   for(const fila of filasCrudas){
     if(!fila || fila.every(c => c === "" || c === undefined || c === null)) continue;
     const get = (i) => (i !== -1 && i < fila.length) ? fila[i] : "";
-    const fecha = parseFechaFlexible(get(idx.fecha));
-    filas.push({
-      ciudad: String(get(idx.ciudad) || "").trim(),
-      punto: String(get(idx.punto) || "").trim(),
-      ticket: parseNumeroSimple(get(idx.ticket)),
-      mes: fecha ? fecha.getMonth()+1 : null,
-      anio: fecha ? fecha.getFullYear() : null
+    const punto = String(get(idx.punto) || "").trim();
+    if(!punto) continue;
+    const ciudad = String(get(idx.ciudad) || "").trim();
+    const mensajeros = parseNumeroSimple(get(idx.mensajeros));
+    const costo = parseNumeroSimple(get(idx.costo));
+    const totalGeneral = parseNumeroSimple(get(idx.totalGeneral));
+    const ticketAnual = parseNumeroSimple(get(idx.ticketAnual));
+
+    idxMeses.forEach(m=>{
+      const volumen = parseNumeroSimple(get(m.idxVolumen));
+      const ticket = parseNumeroSimple(get(m.idxTicket)); // #DIV/0! o vacío -> null
+      if(ticket !== null){
+        largo.push({ punto, ciudad, mes:m.num, anio:CONFIG.ANIO_PROMO, ticket, volumen });
+      }
+    });
+
+    resumen.push({
+      punto, ciudad,
+      clasificacion: String(get(idx.clasificacion) || "").trim(),
+      mensajeros, costo, totalGeneral, ticketAnual,
+      costoPorServicio: (costo!==null && totalGeneral) ? costo/totalGeneral : null
     });
   }
-  return filas;
+  return { largo, resumen };
 }
 
 function descargarCSV(url, timeoutMs = 9000){
@@ -841,19 +903,24 @@ async function cargarDatos(){
     }
 
     setLoaderProgress(65, "Procesando hoja PROMOCIÓN DE ENTRADAS…");
-    let promo = [];
+    let promoLargo = [], promoResumen = [];
     if(CONFIG.CSV_URL_PROMO){
       const crudasPromo = await descargarCSV(CONFIG.CSV_URL_PROMO);
-      promo = normalizarFilasPromo(crudasPromo[0], crudasPromo.slice(1));
+      const resultado = normalizarFilasPromo(crudasPromo[0], crudasPromo.slice(1));
+      promoLargo = resultado.largo;
+      promoResumen = resultado.resumen;
     }
-    STATE.promo = promo;
+    STATE.promo = promoLargo;
+    STATE.promoResumen = promoResumen;
     STATE.isDemo = false;
   }catch(err){
     console.warn("No se pudo cargar el CSV real, se usan datos de demostración:", err.message || err);
     setLoaderProgress(45, "Fuente no disponible, generando datos de demostración…");
     STATE.errorCarga = (err && err.message) ? err.message : String(err);
     STATE.data = generarDatosDemo();
-    STATE.promo = generarPromoDemo();
+    const demoPromo = generarPromoDemo();
+    STATE.promo = demoPromo.largo;
+    STATE.promoResumen = demoPromo.resumen;
     STATE.isDemo = true;
   }
   setLoaderProgress(90, "Preparando visualización…");
@@ -982,6 +1049,11 @@ function construirLayout(){
         <div class="card"><h3 class="mini-title">Ranking por punto</h3><div id="rankTicketPunto"></div></div>
       </div>
       <div class="card" style="margin-top:20px;"><h3 class="mini-title">Tabla comparativa</h3><div class="table-scroll" id="tablaTicket"></div></div>
+      <div class="card" style="margin-top:20px;">
+        <h3 class="mini-title">Per Cápita — Costo por servicio entregado</h3>
+        <div class="module-sub" style="margin-bottom:14px;">Costo operativo fijo del punto (columna Costo) dividido entre el total de servicios del año — a menor valor, mayor eficiencia</div>
+        <div class="table-scroll" id="tablaPerCapita"></div>
+      </div>
     </section>
 
     <!-- MÓDULO 10: RANKING NACIONAL -->
@@ -1524,7 +1596,12 @@ function renderCumplimiento(){
 function renderFranja(){
   const agregado = agregarPor(STATE.filtered, 'franja').filter(a=>a.total>0);
   const totalGeneral = agregado.reduce((s,a)=>s+a.total,0);
-  agregado.sort((a,b)=>b.total-a.total);
+  // Orden cronológico por hora (no por volumen de servicios)
+  const horaAMinutos = (etiqueta)=>{
+    const m = String(etiqueta).match(/(\d{1,2})\s*:\s*(\d{2})/);
+    return m ? (parseInt(m[1],10)*60 + parseInt(m[2],10)) : Number.MAX_SAFE_INTEGER;
+  };
+  agregado.sort((a,b)=> horaAMinutos(a.nombre) - horaAMinutos(b.nombre));
   if(!agregado.length){ document.getElementById('tablaFranja').innerHTML = `<div class="empty-note">Sin datos.</div>`; return; }
   document.getElementById('tablaFranja').innerHTML = `
     <table class="data-table"><thead><tr>
@@ -1620,7 +1697,13 @@ function renderTipoNegocio(){
    --------------------------------------------------------------- */
 function renderPedidosSinCumplimiento(){
   const filas = STATE.filtered.filter(f=>f.cumple === false);
-  const conMotivo = filas.filter(f=>esNovedadValida(f.motivoIncumplimiento));
+  // "SIN SEGUIMIENTO DIARIO" es un marcador de "no se hizo seguimiento", no una causa
+  // raíz real ni un responsable identificable: se excluye del desglose por pedido del usuario.
+  const esCausaValida = (valor)=>{
+    if(!esNovedadValida(valor)) return false;
+    return normalizarTexto(valor) !== "sin seguimiento diario";
+  };
+  const conMotivo = filas.filter(f=>esCausaValida(f.motivoIncumplimiento));
   const dias = new Set(filas.map(f=>f.fecha ? toInputDate(f.fecha) : null).filter(Boolean));
   const promedioDia = dias.size ? filas.length/dias.size : null;
 
@@ -1645,7 +1728,7 @@ function renderPedidosSinCumplimiento(){
     options: opcionesBaseChart(colores, {indexAxis:'y', plugins:{legend:{display:false}}})
   });
 
-  const conResp = filas.filter(f=>esNovedadValida(f.responsableIncumplimiento));
+  const conResp = filas.filter(f=>esCausaValida(f.responsableIncumplimiento));
   const mapaResp = new Map();
   conResp.forEach(f=>{ const k = f.responsableIncumplimiento; mapaResp.set(k, (mapaResp.get(k)||0)+1); });
   const rankingResp = [...mapaResp.entries()].map(([nombre,valor])=>({nombre, valor})).sort((a,b)=>b.valor-a.valor);
@@ -1698,6 +1781,23 @@ function renderTicketPromedio(){
     <table class="data-table"><thead><tr><th>Punto</th><th>Ciudad</th><th>Ticket promedio</th><th>Registros</th></tr></thead><tbody>
       ${filasTabla.map(r=>`<tr><td>${r.punto}</td><td>${r.ciudad}</td><td class="num">${formatoMoneda(r.promedio)}</td><td class="num">${formatoNumero(r.registros)}</td></tr>`).join('')}
     </tbody></table>` : `<div class="empty-note">Sin datos de la hoja Promoción de Entradas.</div>`;
+
+  // Per Cápita: costo fijo del punto / total de servicios del año (columna Total general)
+  let resumen = STATE.promoResumen || [];
+  if(f.ciudad) resumen = resumen.filter(r=>normalizarTexto(r.ciudad) === normalizarTexto(f.ciudad));
+  if(f.punto) resumen = resumen.filter(r=>normalizarTexto(r.punto) === normalizarTexto(f.punto));
+  const conPerCapita = resumen.filter(r=>r.costoPorServicio !== null).sort((a,b)=>a.costoPorServicio-b.costoPorServicio);
+  document.getElementById('tablaPerCapita').innerHTML = conPerCapita.length ? `
+    <table class="data-table"><thead><tr><th>Punto</th><th>Ciudad</th><th>Clasificación</th><th>Mensajeros</th><th>Costo</th><th>Servicios (año)</th><th>Per Cápita</th></tr></thead><tbody>
+      ${conPerCapita.map(r=>`
+        <tr>
+          <td>${r.punto}</td><td>${r.ciudad}</td><td>${r.clasificacion||'N/D'}</td>
+          <td class="num">${r.mensajeros!==null?formatoNumero(r.mensajeros,1):'N/D'}</td>
+          <td class="num">${formatoMoneda(r.costo)}</td>
+          <td class="num">${formatoNumero(r.totalGeneral)}</td>
+          <td class="num">${formatoMoneda(r.costoPorServicio)}</td>
+        </tr>`).join('')}
+    </tbody></table>` : `<div class="empty-note">Sin datos de Mensajeros/Costo en la hoja Promoción de Entradas.</div>`;
 }
 
 /* ---------------------------------------------------------------
