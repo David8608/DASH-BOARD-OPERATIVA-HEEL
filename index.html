@@ -9,18 +9,18 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css" />
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.heat/0.2.0/leaflet-heat.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.25/dist/jspdf.plugin.autotable.min.js"></script>
 
 <style>
 /* ==================================================================
@@ -1420,9 +1420,14 @@ function estiloEjes(){
 }
 
 function crearOActualizarChart(id, config){
-  if(STATE.charts[id]) STATE.charts[id].destroy();
   const ctx = document.getElementById(id);
   if(!ctx) return;
+  if(typeof Chart === 'undefined'){
+    const contenedor = ctx.closest('.chart-box');
+    if(contenedor) contenedor.innerHTML = '<div class="empty-note">⚠ La librería de gráficos (Chart.js) no se pudo cargar desde el CDN.</div>';
+    return;
+  }
+  if(STATE.charts[id]) STATE.charts[id].destroy();
   STATE.charts[id] = new Chart(ctx, config);
 }
 
@@ -1908,6 +1913,11 @@ function crearPopupHTML(f){
 }
 
 function renderMapa(){
+  if(typeof L === 'undefined'){
+    const mapCard = document.getElementById('mapContainer');
+    if(mapCard) mapCard.innerHTML = '<div class="empty-note">⚠ La librería de mapas (Leaflet) no se pudo cargar desde el CDN.</div>';
+    return;
+  }
   if(!STATE.map) inicializarMapa();
   const conCoordenadas = STATE.filtered.filter(f => typeof f.lat === 'number' && typeof f.lon === 'number' && !isNaN(f.lat) && !isNaN(f.lon) && Math.abs(f.lat)<=90 && Math.abs(f.lon)<=180);
 
@@ -2073,20 +2083,29 @@ function inicializarTema(){
    23. ORQUESTADOR DE RENDERIZADO
    --------------------------------------------------------------- */
 function renderizarTodo(){
-  renderKPIs();
-  renderIndiceOperativo();
-  renderComportamiento();
-  renderCumplimiento();
-  renderFranja();
-  renderNovedades();
-  renderTipoNegocio();
-  renderPedidosSinCumplimiento();
-  renderTicketPromedio();
-  renderRankingNacional();
-  renderAlertas();
-  renderInsights();
-  renderMapa();
-  renderTablaOperativa();
+  const modulos = [
+    ["Resumen Ejecutivo", renderKPIs],
+    ["Índice Operativo", renderIndiceOperativo],
+    ["Comportamiento Operativo", renderComportamiento],
+    ["Cumplimiento", renderCumplimiento],
+    ["Productividad por Franja", renderFranja],
+    ["Novedades", renderNovedades],
+    ["Segmentación por Tipo de Negocio", renderTipoNegocio],
+    ["Pedidos sin Cumplimiento", renderPedidosSinCumplimiento],
+    ["Ticket Promedio", renderTicketPromedio],
+    ["Ranking Nacional", renderRankingNacional],
+    ["Centro de Alertas", renderAlertas],
+    ["Insights del Día", renderInsights],
+    ["Mapa Nacional", renderMapa],
+    ["Tabla Operativa", renderTablaOperativa]
+  ];
+  modulos.forEach(([nombre, fn])=>{
+    try{
+      fn();
+    }catch(err){
+      console.error(`Error renderizando el módulo "${nombre}":`, err);
+    }
+  });
 }
 
 /* ---------------------------------------------------------------
@@ -2212,7 +2231,7 @@ async function iniciarAplicacion(){
 
 // Red de seguridad: cualquier excepción no controlada en cualquier punto de la
 // aplicación libera la pantalla de carga en vez de dejarla bloqueada para siempre.
-window.addEventListener('error', ()=> ocultarPantallaCarga());
+window.addEventListener('error', ()=> ocultarPantallaCarga(), true);
 window.addEventListener('unhandledrejection', ()=> ocultarPantallaCarga());
 
 document.addEventListener('DOMContentLoaded', iniciarAplicacion);
