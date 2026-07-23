@@ -493,6 +493,45 @@ function parseNumeroSimple(val){
   return isNaN(n) ? null : n;
 }
 
+// Parser específico para montos en pesos colombianos (Costo, Ticket, Total general).
+// Estos valores llegan desde gviz con el formato de moneda de la celda ya aplicado
+// (ej. "$26,013"), donde la coma es SIEMPRE separador de miles — nunca decimal,
+// porque no existen fracciones de peso en esta hoja. Tratarla como decimal (como
+// hace parseNumeroSimple, pensado para números en convención es-CO) da resultados
+// ~1000 veces menores a los reales.
+function parseMonedaCOP(val){
+  if(val === null || val === undefined || val === "") return null;
+  const bruto = String(val).trim();
+  if(/^#(div\/0!?|n\/a|ref!?|value!?|name\?|null!?|num!?)$/i.test(bruto)) return null;
+  const negativo = bruto.startsWith('-');
+  const soloDigitos = bruto.replace(/[^0-9]/g,"");
+  if(!soloDigitos) return null;
+  const n = parseInt(soloDigitos, 10);
+  if(isNaN(n)) return null;
+  return negativo ? -n : n;
+}
+
+const MESES_ES = { enero:1, febrero:2, marzo:3, abril:4, mayo:5, junio:6, julio:7,
+  agosto:8, septiembre:9, setiembre:9, octubre:10, noviembre:11, diciembre:12 };
+
+// La columna "MES DATA" trae el nombre del mes en texto (ENERO, FEBRERO...),
+// generado a partir de la fecha real y por lo tanto inequívoco. Se usa como
+// referencia de verdad: si la fecha interpretada (M/D o D/M, ambiguo cuando el
+// día es <=12) no coincide con ese mes, se invierte día/mes para reconciliarla.
+function resolverFechaConReferenciaDeMes(valorFecha, valorMesTexto){
+  const fechaBase = parseFechaFlexible(valorFecha);
+  if(!fechaBase) return null;
+  const mesEsperado = MESES_ES[normalizarTexto(valorMesTexto)];
+  if(!mesEsperado) return fechaBase;
+  if(fechaBase.getMonth()+1 === mesEsperado) return fechaBase;
+  const dia = fechaBase.getDate(), mes = fechaBase.getMonth()+1, anio = fechaBase.getFullYear();
+  if(mes >= 1 && mes <= 12){
+    const alterna = new Date(anio, dia-1, mes);
+    if(!isNaN(alterna.getTime()) && alterna.getMonth()+1 === mesEsperado) return alterna;
+  }
+  return fechaBase; // no se pudo reconciliar automáticamente, se deja como estaba
+}
+
 function parseFechaFlexible(val){
   if(!val) return null;
   const s = String(val).trim();
@@ -732,6 +771,7 @@ function normalizarFilasData(headers, filasCrudas){
     cumplimiento: buscarColumnaPorNombre(headers, ["cumplimiento","cumple"]),
     tiempo: buscarColumnaPorNombre(headers, ["tiempo entrega","tiempo_entrega","tiempo de entrega","tiempo promedio","tiempo (min)","tiempo"]),
     tipoNegocio: buscarColumnaPorNombre(headers, ["tipo_negocio","tipo negocio","tipo de negocio"]),
+    mesData: buscarColumnaPorNombre(headers, ["mes data","mes_data"]),
   };
   // Columnas garantizadas por posición según especificación del proyecto (se resuelven
   // primero por nombre real de encabezado y, si no existe, caen a la letra especificada)
@@ -757,7 +797,7 @@ function normalizarFilasData(headers, filasCrudas){
   for(const fila of filasCrudas){
     if(!fila || fila.every(c => c === "" || c === undefined || c === null)) continue;
     const get = (i) => (i !== -1 && i < fila.length) ? fila[i] : "";
-    const fecha = parseFechaFlexible(get(idx.fecha));
+    const fecha = resolverFechaConReferenciaDeMes(get(idx.fecha), get(idx.mesData));
     const estado = String(get(idx.estado) || "").trim();
     const cumpleRaw = get(idx.cumplimiento);
     const lat = parseCoordenada(get(idx.lat), false);
@@ -821,13 +861,13 @@ function normalizarFilasPromo(headers, filasCrudas){
     if(!punto) continue;
     const ciudad = String(get(idx.ciudad) || "").trim();
     const mensajeros = parseNumeroSimple(get(idx.mensajeros));
-    const costo = parseNumeroSimple(get(idx.costo));
-    const totalGeneral = parseNumeroSimple(get(idx.totalGeneral));
-    const ticketAnual = parseNumeroSimple(get(idx.ticketAnual));
+    const costo = parseMonedaCOP(get(idx.costo));
+    const totalGeneral = parseMonedaCOP(get(idx.totalGeneral));
+    const ticketAnual = parseMonedaCOP(get(idx.ticketAnual));
 
     idxMeses.forEach(m=>{
-      const volumen = parseNumeroSimple(get(m.idxVolumen));
-      const ticket = parseNumeroSimple(get(m.idxTicket)); // #DIV/0! o vacío -> null
+      const volumen = parseMonedaCOP(get(m.idxVolumen));
+      const ticket = parseMonedaCOP(get(m.idxTicket)); // #DIV/0! o vacío -> null
       if(ticket !== null){
         largo.push({ punto, ciudad, mes:m.num, anio:CONFIG.ANIO_PROMO, ticket, volumen });
       }
