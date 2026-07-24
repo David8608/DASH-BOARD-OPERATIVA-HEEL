@@ -764,6 +764,7 @@ function generarPromoDemo(){
 function normalizarFilasData(headers, filasCrudas){
   const idx = {
     fecha: buscarColumnaPorNombre(headers, ["fecha_entrega","fecha entrega","fecha de servicio","fecha servicio","fecha"]),
+    fechaCreacion: buscarColumnaPorNombre(headers, ["fecha_creacion","fecha creacion","fecha creación"]),
     guia: buscarColumnaPorNombre(headers, ["guia","guía","numero de guia","no guia"]),
     ciudad: buscarColumnaPorNombre(headers, ["ciudad"]),
     punto: buscarColumnaPorNombre(headers, ["punto_venta","punto de venta","punto","pdv"]),
@@ -793,11 +794,25 @@ function normalizarFilasData(headers, filasCrudas){
   idx.motivoIncumplimiento = letraAIndice("AL");
   idx.responsableIncumplimiento = letraAIndice("AM");
 
+  // Contadores de diagnóstico (se exponen en la validación de consola)
+  let totalFilas = 0, sinFechaEntrega = 0, recuperadasPorFechaCreacion = 0, sinFechaAlguna = 0;
+
   const filas = [];
   for(const fila of filasCrudas){
     if(!fila || fila.every(c => c === "" || c === undefined || c === null)) continue;
+    totalFilas++;
     const get = (i) => (i !== -1 && i < fila.length) ? fila[i] : "";
-    const fecha = resolverFechaConReferenciaDeMes(get(idx.fecha), get(idx.mesData));
+    let fecha = resolverFechaConReferenciaDeMes(get(idx.fecha), get(idx.mesData));
+    let fechaEsAproximada = false;
+    if(!fecha){
+      sinFechaEntrega++;
+      // Pedidos sin fecha de entrega (ej. cancelados o aún no cerrados) igual deben
+      // aparecer en las gráficas de línea de tiempo: se usa la fecha de creación
+      // del pedido como respaldo en vez de descartar el registro por completo.
+      fecha = parseFechaFlexible(get(idx.fechaCreacion));
+      if(fecha){ recuperadasPorFechaCreacion++; fechaEsAproximada = true; }
+      else { sinFechaAlguna++; }
+    }
     const estado = String(get(idx.estado) || "").trim();
     const cumpleRaw = get(idx.cumplimiento);
     const lat = parseCoordenada(get(idx.lat), false);
@@ -805,7 +820,8 @@ function normalizarFilasData(headers, filasCrudas){
     const tiempo = parseDuracionMinutos(get(idx.tiempo));
 
     filas.push({
-      fecha, fechaTexto: fecha ? formatoFecha(fecha) : "",
+      fecha, fechaTexto: fecha ? formatoFecha(fecha) + (fechaEsAproximada ? " (fecha de creación)" : "") : "",
+      fechaEsAproximada,
       guia: String(get(idx.guia) || "").trim(),
       ciudad: String(get(idx.ciudad) || "").trim(),
       punto: String(get(idx.punto) || "").trim(),
@@ -821,6 +837,7 @@ function normalizarFilasData(headers, filasCrudas){
       lat, lon
     });
   }
+  console.log(`Diagnóstico de fechas — filas totales: ${totalFilas}, sin fecha_entrega: ${sinFechaEntrega} (recuperadas con fecha_creación: ${recuperadasPorFechaCreacion}, sin ninguna fecha: ${sinFechaAlguna})`);
   return filas;
 }
 
@@ -883,7 +900,7 @@ function normalizarFilasPromo(headers, filasCrudas){
   return { largo, resumen };
 }
 
-function descargarCSV(url, timeoutMs = 9000){
+function descargarCSV(url, timeoutMs = 9000, exigirFilas = true){
   return new Promise((resolve, reject)=>{
     if(!url){ reject(new Error("URL vacía")); return; }
     let finalizado = false;
@@ -904,7 +921,8 @@ function descargarCSV(url, timeoutMs = 9000){
         // es HTML en vez de CSV: se detecta y se rechaza para no mostrar datos basura.
         const primeraFila = (res.data && res.data[0]) ? res.data[0].join(" ") : "";
         const pareceHTML = /<!doctype|<html|accounts\.google\.com/i.test(primeraFila);
-        if(pareceHTML || !res.data || res.data.length < 2){
+        const minimo = exigirFilas ? 2 : 1;
+        if(pareceHTML || !res.data || res.data.length < minimo){
           reject(new Error("El contenido recibido no es un CSV válido (revisa permisos para compartir del Google Sheet)"));
           return;
         }
@@ -920,12 +938,61 @@ function descargarCSV(url, timeoutMs = 9000){
   });
 }
 
+// Google (gviz) puede truncar en silencio la respuesta de hojas muy grandes o con
+// muchas columnas calculadas (la hoja DATA tiene ~40 columnas, varias con fórmulas),
+// devolviendo solo una parte de las filas sin ningún error visible. Esta función
+// detecta ese corte y completa la descarga pidiendo páginas adicionales con
+// OFFSET hasta agotar los datos reales.
+async function descargarCSVCompleto(url, avisoProgreso){
+  const primera = await descargarCSV(url);
+  const headers = primera[0];
+  let datos = primera.slice(1);
+  const TAMANO_PAGINA_REFERENCIA = datos.length; // tamaño del primer bloque recibido
+  let offset = datos.length;
+  let intentos = 0;
+  const MAX_INTENTOS = 40;
+  const MAX_FILAS_TOTAL = 500000;
+
+  // Solo se intenta paginar si el primer bloque vino "lleno" (indicio de corte);
+  // si el sheet es pequeño y trajo todo de una vez, no hace falta seguir pidiendo.
+  let seguir = TAMANO_PAGINA_REFERENCIA >= 1000;
+
+  while(seguir && intentos < MAX_INTENTOS && datos.length < MAX_FILAS_TOTAL){
+    intentos++;
+    if(avisoProgreso) avisoProgreso(offset);
+    const separador = url.includes('?') ? '&' : '?';
+    const consulta = encodeURIComponent(`select * offset ${offset}`);
+    const urlPagina = `${url}${separador}tq=${consulta}`;
+    let pagina;
+    try{
+      pagina = await descargarCSV(urlPagina, 9000, false);
+    }catch(err){
+      console.warn(`No se pudo traer la página adicional del CSV (offset ${offset}):`, err.message || err);
+      break;
+    }
+    if(!pagina || pagina.length <= 1){ break; } // solo encabezado o vacío: no hay más datos
+
+    // La página de continuación repite la fila de encabezado como primera fila
+    // (comportamiento estándar de gviz para consultas "select"); se descarta.
+    const filasPagina = pagina.slice(1);
+    if(!filasPagina.length){ break; }
+
+    datos = datos.concat(filasPagina);
+    offset += filasPagina.length;
+    seguir = filasPagina.length >= Math.max(500, TAMANO_PAGINA_REFERENCIA * 0.3);
+  }
+  return [headers, ...datos];
+}
+
 async function cargarDatos(){
   setLoaderProgress(10, "Conectando con el Google Sheet…");
   STATE.errorCarga = null;
   try{
     if(!CONFIG.CSV_URL_DATA) throw new Error("Sin URL configurada en CONFIG.CSV_URL_DATA");
-    const crudasData = await descargarCSV(CONFIG.CSV_URL_DATA);
+    const crudasData = await descargarCSVCompleto(CONFIG.CSV_URL_DATA, (offset)=>{
+      setLoaderProgress(30, `Descargando registros adicionales (${formatoNumero(offset)} hasta ahora)…`);
+    });
+    console.log(`CSV DATA descargado: ${crudasData.length - 1} filas de datos (más encabezado)`);
     setLoaderProgress(45, "Procesando hoja DATA…");
     const headersData = crudasData[0];
 
@@ -2266,6 +2333,20 @@ function validarDashboard(){
   chequeos.push(["Cruce ciudad DATA↔PROMOCIÓN coincide", STATE.promo.length===0 ? "N/A (falta URL de Promoción)" : (interseccion.length>0 ? `OK (${interseccion.length} ciudades)` : "SIN COINCIDENCIAS — revisar nombres de ciudad")]);
   const conCoords = STATE.filtered.filter(f=>typeof f.lat==='number' && typeof f.lon==='number');
   chequeos.push(["Registros con coordenadas válidas", conCoords.length + " de " + STATE.filtered.length]);
+  const porMesDiag = new Map();
+  STATE.data.forEach(f=>{
+    if(f.fecha){
+      const k = `${f.fecha.getFullYear()}-${String(f.fecha.getMonth()+1).padStart(2,'0')}`;
+      porMesDiag.set(k, (porMesDiag.get(k)||0)+1);
+    }
+  });
+  const sinFecha = STATE.data.filter(f=>!f.fecha).length;
+  const aproximadas = STATE.data.filter(f=>f.fechaEsAproximada).length;
+  console.log("%cServicios por mes en DATA (sin filtros aplicados)", "font-weight:bold;");
+  console.table([...porMesDiag.entries()].sort().map(([mes,cant])=>({Mes:mes, Servicios:cant})));
+  chequeos.push(["Filas totales en DATA (sin filtrar)", STATE.data.length]);
+  chequeos.push(["Filas sin ninguna fecha (excluidas de gráficas por fecha)", sinFecha]);
+  chequeos.push(["Filas con fecha aproximada (fecha_creación, no fecha_entrega)", aproximadas]);
   chequeos.push(["Heatmap disponible", typeof L !== 'undefined' && typeof L.heatLayer === 'function']);
   chequeos.push(["MarkerCluster disponible", typeof L !== 'undefined' && typeof L.markerClusterGroup === 'function']);
   chequeos.push(["Filtros afectan los módulos", true]);
