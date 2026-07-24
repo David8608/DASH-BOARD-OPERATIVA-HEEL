@@ -1353,14 +1353,24 @@ function coincideFiltros(fila, f){
   return true;
 }
 
-function calcularPeriodoAnterior(f){
-  if(!f.fechaIni || !f.fechaFin) return [];
+// Calcula el rango de fechas del período inmediatamente anterior y de igual
+// duración al seleccionado (ej. si el filtro es todo marzo, devuelve todo
+// febrero). Se reutiliza tanto para las métricas de DATA como para el
+// Ticket Promedio, de modo que ambos respeten el mismo período de comparación.
+function calcularRangoPeriodoAnterior(f){
+  if(!f.fechaIni || !f.fechaFin) return null;
   const duracionMs = f.fechaFin - f.fechaIni;
   const finAnterior = new Date(f.fechaIni.getTime() - 1);
   const iniAnterior = new Date(f.fechaIni.getTime() - duracionMs - 1);
+  return { fechaIni: iniAnterior, fechaFin: finAnterior };
+}
+
+function calcularPeriodoAnterior(f){
+  const rango = calcularRangoPeriodoAnterior(f);
+  if(!rango) return [];
   return STATE.data.filter(fila => {
     if(!fila.fecha) return false;
-    if(fila.fecha < iniAnterior || fila.fecha > finAnterior) return false;
+    if(fila.fecha < rango.fechaIni || fila.fecha > rango.fechaFin) return false;
     const fSinFecha = {...f, fechaIni:null, fechaFin:null};
     return coincideFiltros(fila, fSinFecha);
   });
@@ -1411,10 +1421,25 @@ function calcularMetricas(filas){
   return { total, entregados, cerradosNovedad, cancelados, cumplimiento, efectividad, tiempoProm, novedadesCount, ciudadesActivas, puntosActivos };
 }
 
+// Determina si el mes/año de un registro de Promoción de Entradas cae dentro
+// del rango de fechas seleccionado en los filtros (comparando por mes calendario,
+// ya que esa hoja solo trae granularidad mensual, no por día).
+function mesEnRango(anio, mes, fechaIni, fechaFin){
+  if(anio == null || mes == null) return true; // sin período conocido: se conserva
+  const inicioMes = new Date(anio, mes-1, 1);
+  const finMes = new Date(anio, mes, 0, 23, 59, 59);
+  if(fechaIni && finMes < fechaIni) return false;
+  if(fechaFin && inicioMes > fechaFin) return false;
+  return true;
+}
+
 function calcularTicketPromedio(promoFilas, filtros){
   let subset = promoFilas;
   if(filtros && filtros.ciudad) subset = subset.filter(p=>normalizarTexto(p.ciudad) === normalizarTexto(filtros.ciudad));
   if(filtros && filtros.punto) subset = subset.filter(p=>normalizarTexto(p.punto) === normalizarTexto(filtros.punto));
+  if(filtros && (filtros.fechaIni || filtros.fechaFin)){
+    subset = subset.filter(p=>mesEnRango(p.anio, p.mes, filtros.fechaIni, filtros.fechaFin));
+  }
   const validos = subset.map(p=>p.ticket).filter(t=>t !== null && t !== undefined && !isNaN(t));
   return validos.length ? validos.reduce((a,b)=>a+b,0)/validos.length : null;
 }
@@ -1477,8 +1502,12 @@ function iconoSemaforo(valor, bueno, medio){
 function renderKPIs(){
   const m = calcularMetricas(STATE.filtered);
   const mAnt = calcularMetricas(STATE.previousPeriod);
-  const ticketActual = calcularTicketPromedio(STATE.promo, leerFiltrosActuales());
-  const ticketAnterior = calcularTicketPromedio(STATE.promo, {});
+  const f = leerFiltrosActuales();
+  const ticketActual = calcularTicketPromedio(STATE.promo, f);
+  const rangoAnterior = calcularRangoPeriodoAnterior(f);
+  const ticketAnterior = rangoAnterior
+    ? calcularTicketPromedio(STATE.promo, {...f, fechaIni: rangoAnterior.fechaIni, fechaFin: rangoAnterior.fechaFin})
+    : null;
 
   const tarjetas = [
     { label:"Total servicios", valor:formatoNumero(m.total), icon:"📦", color:"info", delta:calcularVariacion(m.total, mAnt.total) },
