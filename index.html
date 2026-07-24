@@ -130,7 +130,8 @@ input,select{font-family:inherit;}
 .loader-sub{font-size:12px; color:var(--text-tertiary); font-family:var(--font-mono);}
 
 /* ---------- Layout general ---------- */
-.app{max-width:1920px; margin:0 auto; padding:0 var(--space-8) var(--space-12);}
+.layout{display:flex; align-items:flex-start;}
+.app{flex:1; min-width:0; max-width:1700px; padding:0 var(--space-8) var(--space-12);}
 @media (max-width:900px){ .app{padding:0 var(--space-4) var(--space-10);} }
 
 /* ---------- Encabezado ---------- */
@@ -170,6 +171,46 @@ header.topbar{
 .btn-primary:hover{background:var(--accent-strong); border-color:var(--accent-strong); color:#fff;}
 .btn-ghost{border-color:transparent; background:transparent;}
 .btn-ghost:hover{background:var(--card-alt); box-shadow:none;}
+
+/* ---------- Barra lateral: filtros verticales + navegación en carpetas ---------- */
+.sidebar{
+  width:280px; flex-shrink:0; background:var(--bg-elevated); border-right:1px solid var(--border);
+  position:sticky; top:73px; height:calc(100vh - 73px); display:flex; flex-direction:column;
+  overflow:hidden;
+}
+.sidebar-section{padding:var(--space-5); border-bottom:1px solid var(--border); display:flex; flex-direction:column; min-height:0;}
+.sidebar-title{font-size:11px; font-weight:700; color:var(--text-tertiary); text-transform:uppercase; letter-spacing:.05em; margin-bottom:var(--space-4);}
+.filters-vertical{display:flex; flex-direction:column; gap:var(--space-3);}
+.filters-vertical .field select, .filters-vertical .field input{width:100%;}
+.filters-actions-vertical{display:flex; gap:var(--space-2); margin-top:var(--space-2);}
+
+.folder-nav{display:flex; flex-direction:column; gap:2px;}
+.folder-group{margin-bottom:2px;}
+.folder-header{
+  display:flex; align-items:center; gap:8px; width:100%; padding:9px 8px; border-radius:var(--radius-sm);
+  background:transparent; border:none; font-size:13px; font-weight:700; color:var(--text); text-align:left;
+}
+.folder-header:hover{background:var(--card-alt);}
+.folder-header .chevron{margin-left:auto; font-size:10px; color:var(--text-tertiary); transition:transform .15s ease;}
+.folder-group.open .folder-header .chevron{transform:rotate(90deg);}
+.folder-items{display:none; flex-direction:column; padding-left:22px; gap:1px;}
+.folder-group.open .folder-items{display:flex;}
+.folder-item{
+  padding:8px 10px; border-radius:var(--radius-sm); font-size:12.5px; font-weight:600; color:var(--text-secondary);
+  text-align:left; background:transparent; border:none; width:100%;
+}
+.folder-item:hover{background:var(--card-alt); color:var(--text);}
+.folder-item.active{background:var(--accent); color:#fff;}
+
+#btnToggleSidebar{display:none;}
+@media (max-width:1100px){
+  #btnToggleSidebar{display:inline-flex;}
+  .sidebar{
+    position:fixed; top:0; left:0; height:100vh; z-index:900; box-shadow:var(--shadow-hover);
+    transform:translateX(-100%); transition:transform .2s ease;
+  }
+  .sidebar.abierta{transform:translateX(0);}
+}
 .btn-sm{padding:6px 11px; font-size:12px;}
 
 .theme-toggle{display:flex; border:1px solid var(--border-strong); border-radius:20px; padding:3px; gap:2px; background:var(--card);}
@@ -179,18 +220,7 @@ header.topbar{
 }
 .theme-toggle button.active{background:var(--accent); color:#fff;}
 
-/* ---------- Filtros ---------- */
-.filters-bar{
-  position:sticky; top:73px; z-index:400;
-  background:var(--bg-elevated); border-bottom:1px solid var(--border);
-  padding:var(--space-4) var(--space-8);
-  box-shadow:var(--shadow);
-}
-@media (max-width:900px){ .filters-bar{padding:var(--space-3) var(--space-4); top:64px;} }
-.filters-grid{
-  display:grid; grid-template-columns:repeat(auto-fill, minmax(150px,1fr)); gap:var(--space-3);
-  align-items:end;
-}
+/* ---------- Filtros (estilo de campo compartido, ahora usado en la barra lateral) ---------- */
 .field{display:flex; flex-direction:column; gap:5px;}
 .field label{font-size:11px; font-weight:700; color:var(--text-tertiary); text-transform:uppercase; letter-spacing:.04em;}
 .field select, .field input{
@@ -198,7 +228,12 @@ header.topbar{
   padding:8px 10px; border-radius:var(--radius-sm); font-size:13px; height:36px;
 }
 .field select:focus, .field input:focus{outline:2px solid var(--accent-soft); border-color:var(--accent);}
-.filters-actions{display:flex; gap:var(--space-2); align-items:flex-end;}
+
+/* Solo el módulo cuya "carpeta" está activa se muestra; los demás permanecen en el
+   DOM (para que sus datos sigan actualizados) pero ocultos, eliminando el scroll
+   largo por todos los módulos a la vez. */
+#mainContent .module{display:none;}
+#mainContent .module.tab-activa{display:block;}
 
 /* ---------- Contenido / módulos ---------- */
 main{padding-top:var(--space-8);}
@@ -354,34 +389,44 @@ footer.app-footer{text-align:center; padding:var(--space-8) 0; font-size:12px; c
       <button data-theme-btn="light">🌞 Claro</button>
       <button data-theme-btn="dark">🌙 Oscuro</button>
     </div>
+    <button class="btn btn-sm" id="btnToggleSidebar">☰ Filtros y módulos</button>
     <button class="btn btn-primary" id="btnActualizar">↻ Actualizar Datos</button>
   </div>
 </header>
 
-<!-- ==================== FILTROS ==================== -->
-<div class="filters-bar">
-  <div class="filters-grid">
-    <div class="field"><label>Fecha inicial</label><input type="date" id="fFechaIni"></div>
-    <div class="field"><label>Fecha final</label><input type="date" id="fFechaFin"></div>
-    <div class="field"><label>Ciudad</label><select id="fCiudad"><option value="">Todas</option></select></div>
-    <div class="field"><label>Punto de venta</label><select id="fPunto"><option value="">Todos</option></select></div>
-    <div class="field"><label>Responsable</label><select id="fResponsable"><option value="">Todos</option></select></div>
-    <div class="field"><label>Estado</label><select id="fEstado"><option value="">Todos</option></select></div>
-    <div class="field"><label>Cumplimiento</label><select id="fCumplimiento"><option value="">Todos</option><option value="cumple">Cumple</option><option value="nocumple">No cumple</option></select></div>
-    <div class="field"><label>Novedad</label><select id="fNovedad"><option value="">Todas</option></select></div>
-    <div class="field"><label>Franja horaria</label><select id="fFranja"><option value="">Todas</option></select></div>
-    <div class="field"><label>Tipo de negocio</label><select id="fTipoNegocio"><option value="">Todos</option></select></div>
-    <div class="filters-actions">
-      <button class="btn btn-primary btn-sm" id="btnAplicar">Aplicar</button>
-      <button class="btn btn-sm" id="btnLimpiar">Limpiar</button>
+<div class="layout">
+  <!-- ==================== BARRA LATERAL: FILTROS + NAVEGACIÓN EN CARPETAS ==================== -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-title">Filtros</div>
+      <div class="filters-vertical">
+        <div class="field"><label>Fecha inicial</label><input type="date" id="fFechaIni"></div>
+        <div class="field"><label>Fecha final</label><input type="date" id="fFechaFin"></div>
+        <div class="field"><label>Ciudad</label><select id="fCiudad"><option value="">Todas</option></select></div>
+        <div class="field"><label>Punto de venta</label><select id="fPunto"><option value="">Todos</option></select></div>
+        <div class="field"><label>Responsable</label><select id="fResponsable"><option value="">Todos</option></select></div>
+        <div class="field"><label>Estado</label><select id="fEstado"><option value="">Todos</option></select></div>
+        <div class="field"><label>Cumplimiento</label><select id="fCumplimiento"><option value="">Todos</option><option value="cumple">Cumple</option><option value="nocumple">No cumple</option></select></div>
+        <div class="field"><label>Novedad</label><select id="fNovedad"><option value="">Todas</option></select></div>
+        <div class="field"><label>Franja horaria</label><select id="fFranja"><option value="">Todas</option></select></div>
+        <div class="field"><label>Tipo de negocio</label><select id="fTipoNegocio"><option value="">Todos</option></select></div>
+        <div class="filters-actions-vertical">
+          <button class="btn btn-primary btn-sm" id="btnAplicar" style="flex:1;">Aplicar</button>
+          <button class="btn btn-sm" id="btnLimpiar" style="flex:1;">Limpiar</button>
+        </div>
+      </div>
     </div>
-  </div>
-</div>
+    <div class="sidebar-section" style="flex:1; overflow-y:auto;">
+      <div class="sidebar-title">Módulos</div>
+      <nav class="folder-nav" id="folderNav"></nav>
+    </div>
+  </aside>
 
-<div class="app">
-<div id="demoBannerHost"></div>
-<main id="mainContent"></main>
-<footer class="app-footer">HEEL Colombia · Torre de Control Operativa · Datos actualizados diariamente a las 09:00 AM</footer>
+  <div class="app">
+    <div id="demoBannerHost"></div>
+    <main id="mainContent"></main>
+    <footer class="app-footer">HEEL Colombia · Torre de Control Operativa · Datos actualizados diariamente a las 09:00 AM</footer>
+  </div>
 </div>
 
 <script>
@@ -1042,7 +1087,7 @@ function construirLayout(){
     <div id="demoBannerSlot"></div>
 
     <!-- MÓDULO 1: RESUMEN EJECUTIVO -->
-    <section class="module">
+    <section class="module" data-tab="1">
       <div class="module-head">
         <div><span class="module-eyebrow">Módulo 1</span><h2>Resumen Ejecutivo</h2></div>
         <div class="module-sub">Indicadores clave del período filtrado, comparados contra el período anterior equivalente</div>
@@ -1051,7 +1096,7 @@ function construirLayout(){
     </section>
 
     <!-- MÓDULO 2 + IDX + GAUGE -->
-    <section class="module">
+    <section class="module" data-tab="2">
       <div class="module-head">
         <div><span class="module-eyebrow">Módulo 2</span><h2>Índice Operativo</h2></div>
         <div class="module-sub">Desempeño consolidado 0–100 (cumplimiento, efectividad, tiempo, novedades y ticket)</div>
@@ -1066,7 +1111,7 @@ function construirLayout(){
     </section>
 
     <!-- MÓDULO 3: COMPORTAMIENTO OPERATIVO -->
-    <section class="module">
+    <section class="module" data-tab="3">
       <div class="module-head">
         <div><span class="module-eyebrow">Módulo 3</span><h2>Comportamiento Operativo</h2></div>
         <div class="module-sub">Volumen de servicios en el tiempo y tendencia</div>
@@ -1082,7 +1127,7 @@ function construirLayout(){
     </section>
 
     <!-- MÓDULO 4: CUMPLIMIENTO -->
-    <section class="module">
+    <section class="module" data-tab="4">
       <div class="module-head">
         <div><span class="module-eyebrow">Módulo 4</span><h2>Cumplimiento</h2></div>
         <div class="module-sub">Semáforo: 🟢 ≥95%&nbsp;&nbsp;🟡 85–95%&nbsp;&nbsp;🔴 &lt;85%</div>
@@ -1095,7 +1140,7 @@ function construirLayout(){
     </section>
 
     <!-- MÓDULO 5: PRODUCTIVIDAD -->
-    <section class="module">
+    <section class="module" data-tab="5">
       <div class="module-head">
         <div><span class="module-eyebrow">Módulo 5</span><h2>Productividad por Franja Horaria</h2></div>
         <div class="module-sub">Distribución de la operación a lo largo del día</div>
@@ -1104,7 +1149,7 @@ function construirLayout(){
     </section>
 
     <!-- MÓDULO 6: NOVEDADES -->
-    <section class="module">
+    <section class="module" data-tab="6">
       <div class="module-head">
         <div><span class="module-eyebrow">Módulo 6</span><h2>Novedades</h2></div>
         <div class="module-sub">Principales causas y responsables asociados</div>
@@ -1120,7 +1165,7 @@ function construirLayout(){
     </section>
 
     <!-- MÓDULO 7: SEGMENTACIÓN POR TIPO DE NEGOCIO -->
-    <section class="module">
+    <section class="module" data-tab="7">
       <div class="module-head">
         <div><span class="module-eyebrow">Módulo 7</span><h2>Segmentación por Tipo de Negocio</h2></div>
         <div class="module-sub">Paciente, Vinculado, Administrativo y Consignación — volumen y tiempo de gestión</div>
@@ -1129,7 +1174,7 @@ function construirLayout(){
     </section>
 
     <!-- MÓDULO 8: PEDIDOS SIN CUMPLIMIENTO DE ENTREGA -->
-    <section class="module">
+    <section class="module" data-tab="8">
       <div class="module-head">
         <div><span class="module-eyebrow">Módulo 8</span><h2>Pedidos sin Cumplimiento de Entrega</h2></div>
         <div class="module-sub">Motivo real y responsable de cada incumplimiento (columnas Novedad Cumplimiento / Responsable)</div>
@@ -1142,7 +1187,7 @@ function construirLayout(){
     </section>
 
     <!-- MÓDULO 9: TICKET PROMEDIO -->
-    <section class="module">
+    <section class="module" data-tab="9">
       <div class="module-head">
         <div><span class="module-eyebrow">Módulo 9</span><h2>Ticket Promedio</h2></div>
         <div class="module-sub">Fuente: hoja Promoción de Entradas</div>
@@ -1164,7 +1209,7 @@ function construirLayout(){
     </section>
 
     <!-- MÓDULO 10: RANKING NACIONAL -->
-    <section class="module">
+    <section class="module" data-tab="10">
       <div class="module-head">
         <div><span class="module-eyebrow">Módulo 10</span><h2>Ranking Nacional</h2></div>
         <div class="module-sub">Comparativo consolidado de todas las dimensiones operativas</div>
@@ -1182,7 +1227,7 @@ function construirLayout(){
     </section>
 
     <!-- MÓDULO 9: CENTRO DE ALERTAS -->
-    <section class="module">
+    <section class="module" data-tab="11">
       <div class="module-head">
         <div><span class="module-eyebrow">Módulo 11</span><h2>Centro de Alertas</h2></div>
         <div class="module-sub">Generadas automáticamente a partir de los datos filtrados</div>
@@ -1191,7 +1236,7 @@ function construirLayout(){
     </section>
 
     <!-- MÓDULO 10: INSIGHTS DEL DÍA -->
-    <section class="module">
+    <section class="module" data-tab="12">
       <div class="module-head">
         <div><span class="module-eyebrow">Módulo 12</span><h2>Insights del Día</h2></div>
         <div class="module-sub">Lectura automática del comportamiento operativo</div>
@@ -1200,7 +1245,7 @@ function construirLayout(){
     </section>
 
     <!-- MÓDULO 11: MAPA NACIONAL DE SERVICIOS -->
-    <section class="module">
+    <section class="module" data-tab="13">
       <div class="module-head">
         <div><span class="module-eyebrow">Módulo 13</span><h2>Mapa Nacional de Servicios</h2></div>
         <div class="module-sub">Herramienta de análisis operativo y cobertura geográfica</div>
@@ -1244,7 +1289,7 @@ function construirLayout(){
     </section>
 
     <!-- MÓDULO 12: TABLA OPERATIVA -->
-    <section class="module">
+    <section class="module" data-tab="14">
       <div class="module-head">
         <div><span class="module-eyebrow">Módulo 14</span><h2>Tabla Operativa</h2></div>
         <div class="module-sub">Detalle completo de servicios filtrados</div>
@@ -1433,8 +1478,18 @@ function mesEnRango(anio, mes, fechaIni, fechaFin){
   return true;
 }
 
+// "Oficina Principal" (y equivalentes administrativos) no son puntos de venta
+// reales: en la hoja Promoción de Entradas aparecen con 1 servicio/mes y un
+// "ticket" igual a su costo fijo mensual completo (varios millones de pesos),
+// lo cual distorsiona cualquier promedio en el que se incluyan. Se cuentan y
+// se muestran por separado, pero se excluyen de todos los cálculos de promedio.
+function esPuntoAdministrativo(nombrePunto){
+  const n = normalizarTexto(nombrePunto);
+  return n.includes('oficina principal') || n.includes('oficina admin');
+}
+
 function calcularTicketPromedio(promoFilas, filtros){
-  let subset = promoFilas;
+  let subset = promoFilas.filter(p=>!esPuntoAdministrativo(p.punto));
   if(filtros && filtros.ciudad) subset = subset.filter(p=>normalizarTexto(p.ciudad) === normalizarTexto(filtros.ciudad));
   if(filtros && filtros.punto) subset = subset.filter(p=>normalizarTexto(p.punto) === normalizarTexto(filtros.punto));
   if(filtros && (filtros.fechaIni || filtros.fechaFin)){
@@ -1872,9 +1927,18 @@ function renderPedidosSinCumplimiento(){
 }
 function renderTicketPromedio(){
   const f = leerFiltrosActuales();
-  let subset = STATE.promo;
-  if(f.ciudad) subset = subset.filter(p=>normalizarTexto(p.ciudad) === normalizarTexto(f.ciudad));
-  if(f.punto) subset = subset.filter(p=>normalizarTexto(p.punto) === normalizarTexto(f.punto));
+
+  // subsetTodos: respeta ciudad/punto pero conserva el punto administrativo
+  // (para poder mostrar su información aparte). subset: el conjunto "real"
+  // de puntos operativos, usado en todos los promedios y rankings.
+  let subsetTodos = STATE.promo;
+  if(f.ciudad) subsetTodos = subsetTodos.filter(p=>normalizarTexto(p.ciudad) === normalizarTexto(f.ciudad));
+  if(f.punto) subsetTodos = subsetTodos.filter(p=>normalizarTexto(p.punto) === normalizarTexto(f.punto));
+  const subset = subsetTodos.filter(p=>!esPuntoAdministrativo(p.punto));
+  // Igual que subset, pero además acotado al rango de fecha filtrado (para
+  // que el Ranking y la Tabla comparativa reflejen el mes/rango elegido y no
+  // un promedio de todo el histórico).
+  const subsetEnRango = subset.filter(p=>mesEnRango(p.anio, p.mes, f.fechaIni, f.fechaFin));
 
   const nacional = calcularTicketPromedio(STATE.promo, {});
   document.getElementById('ticketNacional').textContent = formatoMoneda(nacional);
@@ -1898,7 +1962,7 @@ function renderTicketPromedio(){
   });
 
   const porPunto = new Map();
-  subset.forEach(p=>{
+  subsetEnRango.forEach(p=>{
     if(p.ticket !== null){
       if(!porPunto.has(p.punto)) porPunto.set(p.punto, []);
       porPunto.get(p.punto).push(p.ticket);
@@ -1909,22 +1973,33 @@ function renderTicketPromedio(){
   document.getElementById('rankTicketPunto').innerHTML = listaRankingHTML(rankingPuntos, 10, 'moneda');
 
   const filasTabla = [...porPunto.entries()].map(([punto, arr])=>{
-    const primero = subset.find(p=>p.punto===punto);
-    return { punto, ciudad: primero? primero.ciudad : '', promedio: arr.reduce((a,b)=>a+b,0)/arr.length, registros: arr.length };
+    const primero = subsetEnRango.find(p=>p.punto===punto);
+    return { punto, ciudad: primero? primero.ciudad : '', promedio: arr.reduce((a,b)=>a+b,0)/arr.length, registros: arr.length, administrativo:false };
   }).sort((a,b)=>b.promedio-a.promedio);
 
+  // El punto administrativo se cuenta y se muestra, pero NUNCA entra al
+  // ranking ni al promedio: se agrega como fila final, marcada aparte.
+  const adminEnRango = subsetTodos.filter(p=>esPuntoAdministrativo(p.punto) && mesEnRango(p.anio, p.mes, f.fechaIni, f.fechaFin) && p.ticket !== null);
+  if(adminEnRango.length){
+    const promedioAdmin = adminEnRango.reduce((s,p)=>s+p.ticket,0)/adminEnRango.length;
+    filasTabla.push({ punto: adminEnRango[0].punto, ciudad: adminEnRango[0].ciudad, promedio: promedioAdmin, registros: adminEnRango.length, administrativo:true });
+  }
+
   document.getElementById('tablaTicket').innerHTML = filasTabla.length ? `
-    <table class="data-table"><thead><tr><th>Punto</th><th>Ciudad</th><th>Ticket promedio</th><th>Registros</th></tr></thead><tbody>
-      ${filasTabla.map(r=>`<tr><td>${r.punto}</td><td>${r.ciudad}</td><td class="num">${formatoMoneda(r.promedio)}</td><td class="num">${formatoNumero(r.registros)}</td></tr>`).join('')}
+    <table class="data-table"><thead><tr><th>Punto</th><th>Ciudad</th><th>Ticket promedio</th><th>Registros</th><th></th></tr></thead><tbody>
+      ${filasTabla.map(r=>`<tr${r.administrativo?' style="opacity:.7;"':''}><td>${r.punto}</td><td>${r.ciudad}</td><td class="num">${formatoMoneda(r.promedio)}</td><td class="num">${formatoNumero(r.registros)}</td><td>${r.administrativo?'<span class="badge yellow">Administrativo · no promediado</span>':''}</td></tr>`).join('')}
     </tbody></table>` : `<div class="empty-note">Sin datos de la hoja Promoción de Entradas.</div>`;
 
   // Per Cápita: costo fijo del punto / total de servicios del año (columna Total general)
+  // Se excluye también el punto administrativo del cálculo de eficiencia, por la
+  // misma razón: su "costo por servicio" no es comparable (1 servicio/mes ficticio).
   let resumen = STATE.promoResumen || [];
   if(f.ciudad) resumen = resumen.filter(r=>normalizarTexto(r.ciudad) === normalizarTexto(f.ciudad));
   if(f.punto) resumen = resumen.filter(r=>normalizarTexto(r.punto) === normalizarTexto(f.punto));
-  const conPerCapita = resumen.filter(r=>r.costoPorServicio !== null).sort((a,b)=>a.costoPorServicio-b.costoPorServicio);
-  document.getElementById('tablaPerCapita').innerHTML = conPerCapita.length ? `
-    <table class="data-table"><thead><tr><th>Punto</th><th>Ciudad</th><th>Clasificación</th><th>Mensajeros</th><th>Costo</th><th>Servicios (año)</th><th>Per Cápita</th></tr></thead><tbody>
+  const conPerCapita = resumen.filter(r=>r.costoPorServicio !== null && !esPuntoAdministrativo(r.punto)).sort((a,b)=>a.costoPorServicio-b.costoPorServicio);
+  const adminResumen = resumen.filter(r=>esPuntoAdministrativo(r.punto));
+  document.getElementById('tablaPerCapita').innerHTML = (conPerCapita.length || adminResumen.length) ? `
+    <table class="data-table"><thead><tr><th>Punto</th><th>Ciudad</th><th>Clasificación</th><th>Mensajeros</th><th>Costo</th><th>Servicios (año)</th><th>Per Cápita</th><th></th></tr></thead><tbody>
       ${conPerCapita.map(r=>`
         <tr>
           <td>${r.punto}</td><td>${r.ciudad}</td><td>${r.clasificacion||'N/D'}</td>
@@ -1932,6 +2007,16 @@ function renderTicketPromedio(){
           <td class="num">${formatoMoneda(r.costo)}</td>
           <td class="num">${formatoNumero(r.totalGeneral)}</td>
           <td class="num">${formatoMoneda(r.costoPorServicio)}</td>
+          <td></td>
+        </tr>`).join('')}
+      ${adminResumen.map(r=>`
+        <tr style="opacity:.7;">
+          <td>${r.punto}</td><td>${r.ciudad}</td><td>${r.clasificacion||'N/D'}</td>
+          <td class="num">${r.mensajeros!==null?formatoNumero(r.mensajeros,1):'N/D'}</td>
+          <td class="num">${formatoMoneda(r.costo)}</td>
+          <td class="num">${formatoNumero(r.totalGeneral)}</td>
+          <td class="num">${formatoMoneda(r.costoPorServicio)}</td>
+          <td><span class="badge yellow">Administrativo · no promediado</span></td>
         </tr>`).join('')}
     </tbody></table>` : `<div class="empty-note">Sin datos de Mensajeros/Costo en la hoja Promoción de Entradas.</div>`;
 }
@@ -2349,30 +2434,104 @@ function inicializarTema(){
 /* ---------------------------------------------------------------
    23. ORQUESTADOR DE RENDERIZADO
    --------------------------------------------------------------- */
+// Configuración compartida de módulos: se usa tanto para el renderizado
+// completo (renderizarTodo) como para las pestañas de navegación (evita
+// mantener dos listas de módulos sincronizadas a mano).
+const MODULOS_CONFIG = [
+  { id:1,  corto:"Resumen ejecutivo",       nombre:"Resumen Ejecutivo",                    fn:renderKPIs },
+  { id:2,  corto:"Índice operativo",        nombre:"Índice Operativo",                     fn:renderIndiceOperativo },
+  { id:3,  corto:"Comportamiento",          nombre:"Comportamiento Operativo",             fn:renderComportamiento },
+  { id:4,  corto:"Cumplimiento",            nombre:"Cumplimiento",                         fn:renderCumplimiento },
+  { id:5,  corto:"Productividad",           nombre:"Productividad por Franja",             fn:renderFranja },
+  { id:6,  corto:"Novedades",               nombre:"Novedades",                            fn:renderNovedades },
+  { id:7,  corto:"Tipo de negocio",         nombre:"Segmentación por Tipo de Negocio",     fn:renderTipoNegocio },
+  { id:8,  corto:"Sin cumplimiento",        nombre:"Pedidos sin Cumplimiento",             fn:renderPedidosSinCumplimiento },
+  { id:9,  corto:"Ticket promedio",         nombre:"Ticket Promedio",                      fn:renderTicketPromedio },
+  { id:10, corto:"Ranking nacional",        nombre:"Ranking Nacional",                     fn:renderRankingNacional },
+  { id:11, corto:"Centro de alertas",       nombre:"Centro de Alertas",                    fn:renderAlertas },
+  { id:12, corto:"Insights del día",        nombre:"Insights del Día",                     fn:renderInsights },
+  { id:13, corto:"Mapa nacional",           nombre:"Mapa Nacional",                        fn:renderMapa },
+  { id:14, corto:"Tabla operativa",         nombre:"Tabla Operativa",                      fn:renderTablaOperativa }
+];
+
+// Agrupación de los 14 módulos en "carpetas" para la navegación lateral.
+const CARPETAS_CONFIG = [
+  { nombre:"Resumen",             icono:"📂", modulos:[1,2] },
+  { nombre:"Operación",           icono:"📁", modulos:[3,4,5,7] },
+  { nombre:"Novedades y alertas", icono:"📁", modulos:[6,8,11,12] },
+  { nombre:"Financiero",          icono:"📁", modulos:[9,10] },
+  { nombre:"Mapa y detalle",      icono:"📁", modulos:[13,14] }
+];
+
 function renderizarTodo(){
-  const modulos = [
-    ["Resumen Ejecutivo", renderKPIs],
-    ["Índice Operativo", renderIndiceOperativo],
-    ["Comportamiento Operativo", renderComportamiento],
-    ["Cumplimiento", renderCumplimiento],
-    ["Productividad por Franja", renderFranja],
-    ["Novedades", renderNovedades],
-    ["Segmentación por Tipo de Negocio", renderTipoNegocio],
-    ["Pedidos sin Cumplimiento", renderPedidosSinCumplimiento],
-    ["Ticket Promedio", renderTicketPromedio],
-    ["Ranking Nacional", renderRankingNacional],
-    ["Centro de Alertas", renderAlertas],
-    ["Insights del Día", renderInsights],
-    ["Mapa Nacional", renderMapa],
-    ["Tabla Operativa", renderTablaOperativa]
-  ];
-  modulos.forEach(([nombre, fn])=>{
+  MODULOS_CONFIG.forEach(({nombre, fn})=>{
     try{
       fn();
     }catch(err){
       console.error(`Error renderizando el módulo "${nombre}":`, err);
     }
   });
+}
+
+/* ---------------------------------------------------------------
+   NAVEGACIÓN EN CARPETAS (barra lateral)
+   --------------------------------------------------------------- */
+function construirTabs(){
+  const nav = document.getElementById('folderNav');
+  nav.innerHTML = CARPETAS_CONFIG.map((carpeta, idxCarpeta) => `
+    <div class="folder-group" data-carpeta="${idxCarpeta}">
+      <button class="folder-header" data-carpeta-toggle="${idxCarpeta}">
+        <span>${carpeta.icono}</span><span>${carpeta.nombre}</span><span class="chevron">▶</span>
+      </button>
+      <div class="folder-items">
+        ${carpeta.modulos.map(id=>{
+          const m = MODULOS_CONFIG.find(x=>x.id===id);
+          return `<button class="folder-item" data-tab-id="${id}">${m.corto}</button>`;
+        }).join('')}
+      </div>
+    </div>`).join('');
+
+  if(!nav.dataset.listenerListo){
+    nav.addEventListener('click', (e)=>{
+      const toggle = e.target.closest('button[data-carpeta-toggle]');
+      if(toggle){
+        toggle.closest('.folder-group').classList.toggle('open');
+        return;
+      }
+      const item = e.target.closest('button[data-tab-id]');
+      if(item) mostrarTab(parseInt(item.dataset.tabId, 10));
+    });
+    nav.dataset.listenerListo = "1";
+  }
+}
+
+function mostrarTab(id){
+  STATE.tabActual = id;
+  document.querySelectorAll('#mainContent .module').forEach(sec=>{
+    sec.classList.toggle('tab-activa', parseInt(sec.dataset.tab,10) === id);
+  });
+  document.querySelectorAll('#folderNav .folder-item').forEach(b=>{
+    b.classList.toggle('active', parseInt(b.dataset.tabId,10) === id);
+  });
+  // Abre automáticamente la carpeta que contiene el módulo activo, y cierra
+  // las demás, para que siempre quede claro dónde está parado el usuario.
+  document.querySelectorAll('#folderNav .folder-group').forEach(grupo=>{
+    const contieneActivo = !!grupo.querySelector('.folder-item.active');
+    grupo.classList.toggle('open', contieneActivo);
+  });
+  // Se vuelve a renderizar solo el módulo mostrado: garantiza que gráficos
+  // (Chart.js) y el mapa (Leaflet) midan correctamente su contenedor ahora
+  // que es visible, en vez de quedar con tamaño 0 por haberse dibujado
+  // mientras estaba oculto.
+  const modulo = MODULOS_CONFIG.find(m => m.id === id);
+  if(modulo){
+    try{ modulo.fn(); }catch(err){ console.error(`Error renderizando el módulo "${modulo.nombre}":`, err); }
+  }
+  document.getElementById('mainContent').scrollIntoView({block:'start', behavior:'instant'});
+  // En pantallas angostas, seleccionar un módulo cierra la barra lateral.
+  if(window.innerWidth <= 1100){
+    document.getElementById('sidebar').classList.remove('abierta');
+  }
 }
 
 /* ---------------------------------------------------------------
@@ -2436,6 +2595,9 @@ function marcarUltimaActualizacion(){
 function conectarEventos(){
   document.getElementById('btnAplicar').addEventListener('click', aplicarFiltros);
   document.getElementById('btnLimpiar').addEventListener('click', limpiarFiltros);
+  document.getElementById('btnToggleSidebar').addEventListener('click', ()=>{
+    document.getElementById('sidebar').classList.toggle('abierta');
+  });
   document.getElementById('btnActualizar').addEventListener('click', async ()=>{
     document.getElementById('loadingScreen').classList.remove('hidden');
     setLoaderProgress(20, "Actualizando datos…");
@@ -2443,9 +2605,11 @@ function conectarEventos(){
       await cargarDatos();
       poblarFiltros();
       construirLayout();
+      construirTabs();
       poblarFiltros();
       conectarEventos();
       aplicarFiltros();
+      mostrarTab(STATE.tabActual || 1);
       marcarUltimaActualizacion();
       setLoaderProgress(100, "Actualizado");
     }catch(err){
@@ -2501,6 +2665,7 @@ async function iniciarAplicacion(){
     setLoaderProgress(5, "Iniciando Torre de Control Operativa…");
     await cargarDatos();
     construirLayout();
+    construirTabs();
     poblarFiltros();
     conectarEventos();
     try{
@@ -2509,12 +2674,15 @@ async function iniciarAplicacion(){
       console.error("Error renderizando los módulos:", errRender);
       mostrarErrorFatal(errRender.message || errRender);
     }
+    mostrarTab(1);
     marcarUltimaActualizacion();
     setLoaderProgress(100, "Listo");
     validarDashboard();
   }catch(errFatal){
     console.error("Error fatal iniciando la aplicación:", errFatal);
     construirLayout();
+    construirTabs();
+    mostrarTab(1);
     mostrarErrorFatal(errFatal.message || errFatal);
   }finally{
     setTimeout(ocultarPantallaCarga, 350);
