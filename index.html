@@ -348,7 +348,7 @@ footer.app-footer{text-align:center; padding:var(--space-8) 0; font-size:12px; c
   <div class="topbar-right">
     <div class="date-block">
       <div class="d-main" id="fechaActual">--</div>
-      <div class="d-sub">Última actualización: <span id="horaActualizacion">09:00 AM</span></div>
+      <div class="d-sub">Última actualización: <span id="horaActualizacion">cargando…</span></div>
     </div>
     <div class="theme-toggle" id="themeToggle">
       <button data-theme-btn="light">🌞 Claro</button>
@@ -411,7 +411,7 @@ const CONFIG = {
   CSV_URL_PROMO: "https://docs.google.com/spreadsheets/d/1kxP2uGR4KOQ1wf1MpCmJOOqQv_kOKlgMRgiu9uYaxXA/gviz/tq?tqx=out:csv&gid=892513436",
   // Año que corresponde a las columnas ENERO..DICIEMBRE de Promoción de Entradas.
   ANIO_PROMO: 2026,
-  HORA_ACTUALIZACION: "09:00 AM",
+  // (La hora de "Última actualización" ahora se calcula en tiempo real, ver marcarUltimaActualizacion)
   META_TIEMPO_MINUTOS: 60,     // tiempo objetivo de entrega, usado en el índice operativo
   UMBRAL_CUMPLIMIENTO: 95,     // % mínimo aceptable de cumplimiento
   PAGINA_TABLA: 25
@@ -2058,6 +2058,17 @@ function inicializarMapa(){
   }).addTo(STATE.map);
   aplicarFiltroTilesSegunTema();
 
+  // El contenedor del mapa puede no tener aún un tamaño real (ancho/alto en
+  // píxeles) en el instante exacto en que se crea el mapa, ya que el navegador
+  // todavía está calculando el layout de la página. Si esto ocurre, el plugin
+  // de heatmap intenta medir un canvas de 0px y falla con IndexSizeError,
+  // dejando el mapa en un estado roto (y sus controles sin responder). Se
+  // fuerza un recálculo de tamaño de inmediato y otro poco después, como red
+  // de seguridad adicional para layouts que tardan más en asentarse.
+  STATE.map.invalidateSize();
+  setTimeout(()=>{ if(STATE.map) STATE.map.invalidateSize(); }, 300);
+  window.addEventListener('resize', ()=>{ if(STATE.map) STATE.map.invalidateSize(); });
+
   STATE.layers.cluster = L.markerClusterGroup({ disableClusteringAtZoom: 16, chunkedLoading:true });
   STATE.map.on('moveend', ()=> recalcularCobertura());
 
@@ -2155,6 +2166,10 @@ function renderMapa(){
     return;
   }
   if(!STATE.map) inicializarMapa();
+  // Se fuerza el recálculo de tamaño en cada render (operación barata) para
+  // evitar que cualquier capa (heatmap, cluster) mida el contenedor en 0px
+  // si el layout de la página cambió entre un render y otro.
+  STATE.map.invalidateSize();
   const conCoordenadas = STATE.filtered.filter(f => typeof f.lat === 'number' && typeof f.lon === 'number' && !isNaN(f.lat) && !isNaN(f.lon) && Math.abs(f.lat)<=90 && Math.abs(f.lon)<=180);
 
   if(STATE.layers.heat){ STATE.map.removeLayer(STATE.layers.heat); STATE.layers.heat = null; }
@@ -2163,10 +2178,26 @@ function renderMapa(){
 
   if(STATE.mapMode === 'heat'){
     const puntosHeat = conCoordenadas.map(f=>[f.lat, f.lon, 0.55]);
-    STATE.layers.heat = L.heatLayer(puntosHeat, {
+    const opcionesHeat = {
       radius:22, blur:18, maxZoom:12,
       gradient:{0.2:'#0F6CBD', 0.4:'#0F9D58', 0.65:'#F2A600', 1.0:'#D13438'}
-    }).addTo(STATE.map);
+    };
+    const contenedor = document.getElementById('mapContainer');
+    const tieneAncho = contenedor && contenedor.clientWidth > 0 && contenedor.clientHeight > 0;
+    if(!tieneAncho){
+      // El contenedor todavía no tiene un tamaño real: se reintenta en el
+      // siguiente frame en vez de dejar que el plugin falle con IndexSizeError.
+      requestAnimationFrame(()=>{ if(STATE.mapMode === 'heat'){ STATE.map.invalidateSize(); renderMapa(); } });
+      return;
+    }
+    try{
+      STATE.layers.heat = L.heatLayer(puntosHeat, opcionesHeat).addTo(STATE.map);
+    }catch(err){
+      console.warn("No se pudo dibujar el heatmap, reintentando tras recalcular tamaño:", err.message || err);
+      STATE.map.invalidateSize();
+      setTimeout(()=>{ if(STATE.mapMode === 'heat') renderMapa(); }, 200);
+      return;
+    }
   } else {
     conCoordenadas.forEach(f=>{
       const marker = L.circleMarker([f.lat, f.lon], {
@@ -2390,7 +2421,16 @@ function validarDashboard(){
 function actualizarFechaEncabezado(){
   const hoy = new Date();
   document.getElementById('fechaActual').textContent = hoy.toLocaleDateString('es-CO', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
-  document.getElementById('horaActualizacion').textContent = CONFIG.HORA_ACTUALIZACION;
+}
+
+// Se llama justo después de que termina de cargar el CSV (al abrir la página o
+// al presionar "Actualizar Datos"), para reflejar el momento REAL en que se
+// trajeron los datos — no una hora fija de referencia.
+function marcarUltimaActualizacion(){
+  const ahora = new Date();
+  const horaTexto = ahora.toLocaleTimeString('es-CO', { hour:'2-digit', minute:'2-digit', hour12:true });
+  const fechaTexto = ahora.toLocaleDateString('es-CO', { day:'2-digit', month:'2-digit', year:'numeric' });
+  document.getElementById('horaActualizacion').textContent = `${fechaTexto}, ${horaTexto}`;
 }
 
 function conectarEventos(){
@@ -2406,6 +2446,7 @@ function conectarEventos(){
       poblarFiltros();
       conectarEventos();
       aplicarFiltros();
+      marcarUltimaActualizacion();
       setLoaderProgress(100, "Actualizado");
     }catch(err){
       console.error("Error actualizando datos:", err);
@@ -2468,6 +2509,7 @@ async function iniciarAplicacion(){
       console.error("Error renderizando los módulos:", errRender);
       mostrarErrorFatal(errRender.message || errRender);
     }
+    marcarUltimaActualizacion();
     setLoaderProgress(100, "Listo");
     validarDashboard();
   }catch(errFatal){
