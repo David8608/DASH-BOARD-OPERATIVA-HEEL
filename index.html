@@ -969,48 +969,55 @@ function descargarCSV(url, timeoutMs = 9000, exigirFilas = true){
 }
 
 // Google (gviz) puede truncar en silencio la respuesta de hojas muy grandes o con
-// muchas columnas calculadas (la hoja DATA tiene ~40 columnas, varias con fórmulas),
-// devolviendo solo una parte de las filas sin ningún error visible. Esta función
-// detecta ese corte y completa la descarga pidiendo páginas adicionales con
-// OFFSET hasta agotar los datos reales.
+// muchas columnas calculadas (la hoja DATA tiene ~40 columnas, varias con fórmulas,
+// y crece todos los días), o directamente agotar el tiempo de espera si se pide
+// TODA la hoja de una sola vez. Por eso, en vez de intentar una descarga completa
+// sin límite, se pagina desde el primer request: se piden bloques acotados con
+// OFFSET hasta agotar los datos reales, lo cual es mucho más confiable que una
+// única consulta gigante para un sheet que sigue creciendo.
 async function descargarCSVCompleto(url, avisoProgreso){
-  const primera = await descargarCSV(url);
-  const headers = primera[0];
-  let datos = primera.slice(1);
-  const TAMANO_PAGINA_REFERENCIA = datos.length; // tamaño del primer bloque recibido
-  let offset = datos.length;
-  let intentos = 0;
-  const MAX_INTENTOS = 40;
+  const TAMANO_PAGINA = 6000;
+  const TIMEOUT_PAGINA = 25000; // 25s: las páginas de una hoja grande con fórmulas tardan más que un CSV simple
+  const MAX_INTENTOS = 60;
   const MAX_FILAS_TOTAL = 500000;
 
-  // Solo se intenta paginar si el primer bloque vino "lleno" (indicio de corte);
-  // si el sheet es pequeño y trajo todo de una vez, no hace falta seguir pidiendo.
-  let seguir = TAMANO_PAGINA_REFERENCIA >= 1000;
+  let headers = null;
+  let datos = [];
+  let offset = 0;
+  let intentos = 0;
+  let seguir = true;
 
   while(seguir && intentos < MAX_INTENTOS && datos.length < MAX_FILAS_TOTAL){
     intentos++;
     if(avisoProgreso) avisoProgreso(offset);
     const separador = url.includes('?') ? '&' : '?';
-    const consulta = encodeURIComponent(`select * offset ${offset}`);
+    const consulta = encodeURIComponent(`select * limit ${TAMANO_PAGINA} offset ${offset}`);
     const urlPagina = `${url}${separador}tq=${consulta}`;
+
     let pagina;
     try{
-      pagina = await descargarCSV(urlPagina, 9000, false);
+      pagina = await descargarCSV(urlPagina, TIMEOUT_PAGINA, offset === 0);
     }catch(err){
-      console.warn(`No se pudo traer la página adicional del CSV (offset ${offset}):`, err.message || err);
-      break;
+      console.warn(`No se pudo traer la página del CSV (offset ${offset}):`, err.message || err);
+      if(offset === 0) throw err; // si falla la primerísima página, no hay datos que mostrar: se propaga el error
+      break; // si falla una página posterior, se conservan al menos las ya descargadas
     }
-    if(!pagina || pagina.length <= 1){ break; } // solo encabezado o vacío: no hay más datos
+    if(!pagina || pagina.length === 0) break;
 
-    // La página de continuación repite la fila de encabezado como primera fila
-    // (comportamiento estándar de gviz para consultas "select"); se descarta.
-    const filasPagina = pagina.slice(1);
-    if(!filasPagina.length){ break; }
+    if(headers === null){
+      headers = pagina[0];
+      datos = pagina.slice(1);
+    } else {
+      // Cada página repite la fila de encabezado como primera fila; se descarta.
+      datos = datos.concat(pagina.slice(1));
+    }
 
-    datos = datos.concat(filasPagina);
-    offset += filasPagina.length;
-    seguir = filasPagina.length >= Math.max(500, TAMANO_PAGINA_REFERENCIA * 0.3);
+    const filasEstaPagina = pagina.length - 1;
+    offset += filasEstaPagina;
+    seguir = filasEstaPagina >= TAMANO_PAGINA; // si vino más corta que el límite, ya no hay más datos
   }
+
+  if(headers === null) throw new Error("No se recibió ninguna página de datos");
   return [headers, ...datos];
 }
 
