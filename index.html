@@ -159,6 +159,36 @@ h1,h2,h3,h4{font-family:var(--font-display); margin:0; letter-spacing:-0.01em;}
 }
 .nav-item .count.alert{background:var(--bad); color:#fff;}
 
+/* ---- Carpetas (grupos de módulos) ---- */
+.nav-group{margin-bottom:2px;}
+.nav-folder{position:relative;}
+.nav-folder .chevron{
+  margin-left:auto; display:flex; align-items:center; transition:transform .2s ease; opacity:.6;
+}
+.nav-folder .chevron svg{width:13px;height:13px;}
+.nav-folder.active .chevron{transform:rotate(180deg); opacity:1;}
+.nav-folder .count{margin-left:auto;}
+.nav-folder .chevron{margin-left:6px;}
+.nav-children{
+  max-height:0; overflow:hidden; transition:max-height .28s ease;
+  padding-left:8px; border-left:1px solid rgba(255,255,255,.08); margin-left:22px;
+}
+.nav-children.open{max-height:480px;}
+.nav-subitem{
+  display:flex; align-items:center; gap:9px; width:100%; text-align:left; border:none; background:none;
+  padding:7px 10px; border-radius:8px; cursor:pointer; font-size:12.4px; font-weight:500;
+  color:rgba(234,241,248,.62); margin:1px 0; transition:background .15s ease, color .15s ease;
+}
+.nav-subitem svg{width:14px;height:14px; flex-shrink:0; opacity:.8;}
+.nav-subitem:hover{background:rgba(255,255,255,.06); color:#fff;}
+.nav-subitem.active{color:#38C1C4; background:rgba(56,193,196,.1);}
+.nav-subitem .count{margin-left:auto; font-size:10px;}
+
+/* ---- Paneles (una carpeta = todas sus secciones apiladas visibles a la vez) ---- */
+.panel{display:none;}
+.panel.active{display:block; animation:panelIn .28s ease;}
+@keyframes panelIn{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
+
 .sidebar-foot{padding:14px 20px 20px; border-top:1px solid rgba(255,255,255,.08);}
 .upload-btn{
   display:flex; align-items:center; gap:9px; width:100%;
@@ -835,10 +865,14 @@ const ICONS = {
   chevRight:'<path d="M9 18l6-6-6-6"/>',
   smile:'<circle cx="12" cy="12" r="9"/><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/>',
   route:'<circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M8 19h7a3 3 0 003-3V8a3 3 0 00-3-3H8"/>',
+  folder:'<path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>',
+  chevDown:'<path d="M6 9l6 6 6-6"/>',
 };
 function icon(name, extra=''){ return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ${extra}>${ICONS[name]||''}</svg>`; }
 
 /* ---------- 10. NAVEGACIÓN LATERAL ---------- */
+/* Cada módulo pertenece a una carpeta. Al abrir una carpeta se muestran de una
+   sola vez, apiladas, TODAS las secciones que contiene (no una por una). */
 const SECCIONES = [
   {id:'resumen', label:'Resumen Ejecutivo', icon:'grid'},
   {id:'comportamiento', label:'Comportamiento Operativo', icon:'activity'},
@@ -853,31 +887,107 @@ const SECCIONES = [
   {id:'personal', label:'Personal (Datos Agregados)', icon:'shield'},
 ];
 
+const GRUPOS = [
+  {id:'resumen', label:'Resumen Ejecutivo', icon:'grid', carpeta:false, hijos:['resumen']},
+  {id:'operacion', label:'Operación', icon:'activity', carpeta:true, hijos:['comportamiento','cumplimiento','productividad']},
+  {id:'novedades-alertas', label:'Novedades y Alertas', icon:'alert', carpeta:true, hijos:['novedades','alertas','insights']},
+  {id:'comercial', label:'Comercial', icon:'tag', carpeta:true, hijos:['ticket','rankings']},
+  {id:'datos', label:'Datos y Personal', icon:'table', carpeta:true, hijos:['tabla','personal']},
+];
+const SECCION_A_GRUPO = {};
+GRUPOS.forEach(g=> g.hijos.forEach(h=> SECCION_A_GRUPO[h]=g.id));
+
+/* Funciones de render por sección, usadas para (re)construir los gráficos de
+   una carpeta justo cuando se abre (evita canvases de tamaño 0 por estar ocultos) */
+const RENDER_POR_SECCION = {
+  resumen: ()=>renderResumen(),
+  comportamiento: ()=>renderComportamiento(),
+  cumplimiento: ()=>renderCumplimiento(),
+  novedades: ()=>renderNovedades(),
+  productividad: ()=>renderProductividad(),
+  ticket: ()=>renderTicket(),
+  rankings: ()=>renderRankings(),
+  alertas: ()=>renderAlertas(),
+  insights: ()=>renderInsights(),
+  tabla: ()=>renderTabla(),
+  personal: ()=>renderPersonal(),
+};
+
+let GRUPO_ACTIVO = 'resumen';
+
 function renderSidebarNav(){
   const nav = document.getElementById('sidebarNav');
-  nav.innerHTML = SECCIONES.map(s=>`
-    <button class="nav-item" data-nav="${s.id}">
-      ${icon(s.icon)}<span>${s.label}</span><span class="count" id="navcount-${s.id}"></span>
-    </button>`).join('');
-  nav.querySelectorAll('.nav-item').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
+  nav.innerHTML = GRUPOS.map(g=>{
+    const etiquetasHijos = SECCIONES.filter(s=>g.hijos.includes(s.id));
+    if(!g.carpeta){
+      return `<button class="nav-item nav-folder" data-grupo="${g.id}">
+        ${icon(g.icon)}<span>${g.label}</span><span class="count" id="navcount-${g.id}"></span>
+      </button>`;
+    }
+    return `
+      <div class="nav-group">
+        <button class="nav-item nav-folder" data-grupo="${g.id}">
+          ${icon('folder')}<span>${g.label}</span>
+          <span class="count" id="navcount-${g.id}"></span>
+          <span class="chevron">${icon('chevDown')}</span>
+        </button>
+        <div class="nav-children" id="children-${g.id}">
+          ${etiquetasHijos.map(s=>`
+            <button class="nav-subitem" data-nav="${s.id}" data-grupo="${g.id}">
+              ${icon(s.icon)}<span>${s.label}</span><span class="count" id="navcount-${s.id}"></span>
+            </button>`).join('')}
+        </div>
+      </div>`;
+  }).join('');
+
+  nav.querySelectorAll('.nav-folder').forEach(btn=>{
+    btn.addEventListener('click', ()=> mostrarGrupo(btn.getAttribute('data-grupo'), true));
+  });
+  nav.querySelectorAll('.nav-subitem').forEach(btn=>{
+    btn.addEventListener('click', e=>{
+      e.stopPropagation();
+      const grupo = btn.getAttribute('data-grupo');
       const id = btn.getAttribute('data-nav');
+      mostrarGrupo(grupo, false);
       const target = document.getElementById('sec-'+id);
-      if(target) target.scrollIntoView({behavior:'smooth', block:'start'});
-      document.getElementById('sidebar').classList.remove('open');
+      if(target) setTimeout(()=> target.scrollIntoView({behavior:'smooth', block:'start'}), 60);
     });
   });
 }
 
+/* Abre una carpeta: muestra TODAS sus secciones apiladas en el panel, oculta
+   las demás carpetas, expande la lista de hijos en el sidebar y (re)dibuja
+   los gráficos que contiene (por si estaban ocultos con tamaño 0). */
+function mostrarGrupo(grupoId, irAlInicio){
+  GRUPO_ACTIVO = grupoId;
+  document.querySelectorAll('.panel').forEach(p=> p.classList.toggle('active', p.id==='panel-'+grupoId));
+  document.querySelectorAll('.nav-folder').forEach(b=> b.classList.toggle('active', b.getAttribute('data-grupo')===grupoId));
+  document.querySelectorAll('.nav-children').forEach(c=> c.classList.toggle('open', c.id==='children-'+grupoId));
+  document.querySelectorAll('.nav-subitem').forEach(b=> b.classList.remove('active'));
+
+  const grupo = GRUPOS.find(g=>g.id===grupoId);
+  if(grupo){ grupo.hijos.forEach(h=>{ const fn = RENDER_POR_SECCION[h]; if(fn) fn(); }); }
+
+  if(irAlInicio!==false) window.scrollTo({top:0, behavior:'smooth'});
+  document.getElementById('sidebar').classList.remove('open');
+  activarScrollSpy();
+}
+
+let _tcScrollHandler = null;
 function activarScrollSpy(){
-  const items = Array.from(document.querySelectorAll('.nav-item'));
-  const secciones = SECCIONES.map(s=>document.getElementById('sec-'+s.id)).filter(Boolean);
+  const grupo = GRUPOS.find(g=>g.id===GRUPO_ACTIVO);
+  if(_tcScrollHandler) window.removeEventListener('scroll', _tcScrollHandler);
+  if(!grupo){ return; }
+  const subitems = Array.from(document.querySelectorAll(`#children-${grupo.id} .nav-subitem`));
+  if(!subitems.length) return;
+  const secciones = grupo.hijos.map(id=>document.getElementById('sec-'+id)).filter(Boolean);
   function onScroll(){
     let actualId = secciones[0] && secciones[0].id;
     const scrollPos = window.scrollY + 130;
     secciones.forEach(sec=>{ if(sec.offsetTop <= scrollPos) actualId = sec.id; });
-    items.forEach(it=> it.classList.toggle('active', 'sec-'+it.getAttribute('data-nav')===actualId));
+    subitems.forEach(it=> it.classList.toggle('active', it.getAttribute('data-nav')===actualId));
   }
+  _tcScrollHandler = onScroll;
   window.addEventListener('scroll', onScroll, {passive:true});
   onScroll();
 }
@@ -964,13 +1074,18 @@ function inicializarTema(){
 /* ---------- 13. ESQUELETO ESTÁTICO DEL CONTENIDO ---------- */
 function construirEsqueleto(){
   const html = `
+    <!-- ===== CARPETA: RESUMEN EJECUTIVO ===== -->
+    <div class="panel active" id="panel-resumen">
     <section class="section" id="sec-resumen">
       <div class="section-head">
         <div class="titles"><span class="section-num">01</span><div><h2>Resumen Ejecutivo</h2><div class="section-sub">Indicadores clave del período seleccionado, con variación frente al mes anterior</div></div></div>
       </div>
       <div class="grid grid-kpi" id="kpiGrid"></div>
     </section>
+    </div>
 
+    <!-- ===== CARPETA: OPERACIÓN (Comportamiento + Cumplimiento + Productividad) ===== -->
+    <div class="panel" id="panel-operacion">
     <section class="section" id="sec-comportamiento">
       <div class="section-head">
         <div class="titles"><span class="section-num">02</span><div><h2>Comportamiento Operativo</h2><div class="section-sub">Volumen de servicios e ingresos a lo largo del período</div></div></div>
@@ -1007,9 +1122,29 @@ function construirEsqueleto(){
       </div>
     </section>
 
+    <section class="section" id="sec-productividad">
+      <div class="section-head">
+        <div class="titles"><span class="section-num">04</span><div><h2>Productividad</h2><div class="section-sub">Tiempos de entrega: promedio, mínimo, máximo y comparativo</div></div></div>
+      </div>
+      <div class="grid grid-kpi" id="productividadKpis"></div>
+      <div class="grid grid-2" style="margin-top:16px;">
+        <div class="card chart-card">
+          <div class="card-title">Tiempo promedio por cliente / punto</div>
+          <div class="chart-wrap"><canvas id="chartTiempoCliente"></canvas></div>
+        </div>
+        <div class="card chart-card">
+          <div class="card-title">Tiempo promedio mensual</div>
+          <div class="chart-wrap"><canvas id="chartTiempoMensual"></canvas></div>
+        </div>
+      </div>
+    </section>
+    </div>
+
+    <!-- ===== CARPETA: NOVEDADES Y ALERTAS (Novedades + Centro de Alertas + Insights) ===== -->
+    <div class="panel" id="panel-novedades-alertas">
     <section class="section" id="sec-novedades">
       <div class="section-head">
-        <div class="titles"><span class="section-num">04</span><div><h2>Novedades</h2><div class="section-sub">Siniestros y causas que afectan el cumplimiento operativo</div></div></div>
+        <div class="titles"><span class="section-num">05</span><div><h2>Novedades</h2><div class="section-sub">Siniestros y causas que afectan el cumplimiento operativo</div></div></div>
       </div>
       <div class="grid grid-2">
         <div class="card chart-card">
@@ -1033,26 +1168,26 @@ function construirEsqueleto(){
       </div>
     </section>
 
-    <section class="section" id="sec-productividad">
+    <section class="section" id="sec-alertas">
       <div class="section-head">
-        <div class="titles"><span class="section-num">05</span><div><h2>Productividad</h2><div class="section-sub">Tiempos de entrega: promedio, mínimo, máximo y comparativo</div></div></div>
+        <div class="titles"><span class="section-num">06</span><div><h2>Centro de Alertas</h2><div class="section-sub">Generadas automáticamente a partir de reglas y umbrales — sin uso de IA</div></div></div>
       </div>
-      <div class="grid grid-kpi" id="productividadKpis"></div>
-      <div class="grid grid-2" style="margin-top:16px;">
-        <div class="card chart-card">
-          <div class="card-title">Tiempo promedio por cliente / punto</div>
-          <div class="chart-wrap"><canvas id="chartTiempoCliente"></canvas></div>
-        </div>
-        <div class="card chart-card">
-          <div class="card-title">Tiempo promedio mensual</div>
-          <div class="chart-wrap"><canvas id="chartTiempoMensual"></canvas></div>
-        </div>
-      </div>
+      <div class="alert-list" id="alertasLista"></div>
     </section>
 
+    <section class="section" id="sec-insights">
+      <div class="section-head">
+        <div class="titles"><span class="section-num">07</span><div><h2>Insights</h2><div class="section-sub">Conclusiones calculadas automáticamente sobre el período filtrado</div></div></div>
+      </div>
+      <div class="grid" style="grid-template-columns:1fr; gap:12px;" id="insightsLista"></div>
+    </section>
+    </div>
+
+    <!-- ===== CARPETA: COMERCIAL (Ticket Promedio + Rankings) ===== -->
+    <div class="panel" id="panel-comercial">
     <section class="section" id="sec-ticket">
       <div class="section-head">
-        <div class="titles"><span class="section-num">06</span><div><h2>Ticket Promedio</h2><div class="section-sub">Valor per cápita por servicio entregado</div></div></div>
+        <div class="titles"><span class="section-num">08</span><div><h2>Ticket Promedio</h2><div class="section-sub">Valor per cápita por servicio entregado</div></div></div>
       </div>
       <div class="grid grid-2">
         <div class="card chart-card">
@@ -1068,7 +1203,7 @@ function construirEsqueleto(){
 
     <section class="section" id="sec-rankings">
       <div class="section-head">
-        <div class="titles"><span class="section-num">07</span><div><h2>Rankings</h2><div class="section-sub">Comparativos automáticos entre clientes, ciudades y causas de novedad</div></div></div>
+        <div class="titles"><span class="section-num">09</span><div><h2>Rankings</h2><div class="section-sub">Comparativos automáticos entre clientes, ciudades y causas de novedad</div></div></div>
       </div>
       <div class="grid grid-3">
         <div class="card"><div class="card-title">Top clientes por volumen</div><div class="rank-list" id="rankVolumen"></div></div>
@@ -1079,21 +1214,10 @@ function construirEsqueleto(){
         <div class="card"><div class="card-title">Top ticket promedio</div><div class="rank-list" id="rankTicket"></div></div>
       </div>
     </section>
+    </div>
 
-    <section class="section" id="sec-alertas">
-      <div class="section-head">
-        <div class="titles"><span class="section-num">08</span><div><h2>Centro de Alertas</h2><div class="section-sub">Generadas automáticamente a partir de reglas y umbrales — sin uso de IA</div></div></div>
-      </div>
-      <div class="alert-list" id="alertasLista"></div>
-    </section>
-
-    <section class="section" id="sec-insights">
-      <div class="section-head">
-        <div class="titles"><span class="section-num">09</span><div><h2>Insights</h2><div class="section-sub">Conclusiones calculadas automáticamente sobre el período filtrado</div></div></div>
-      </div>
-      <div class="grid" style="grid-template-columns:1fr; gap:12px;" id="insightsLista"></div>
-    </section>
-
+    <!-- ===== CARPETA: DATOS Y PERSONAL (Tabla Operativa + Personal) ===== -->
+    <div class="panel" id="panel-datos">
     <section class="section" id="sec-tabla">
       <div class="section-head">
         <div class="titles"><span class="section-num">10</span><div><h2>Tabla Operativa</h2><div class="section-sub">Detalle por cliente y mes — responde a los filtros activos</div></div></div>
@@ -1130,8 +1254,8 @@ function construirEsqueleto(){
       </div>
       <div class="foot-note">Por política de privacidad, nombres, cédulas, teléfonos, correos y observaciones personales nunca se cargan ni se muestran en este dashboard.</div>
     </section>
-
     <div class="foot-note">Torre de Control Operativa · Generado automáticamente a partir del archivo Excel proporcionado · Los datos personales fueron excluidos por diseño</div>
+    </div>
   `;
   document.getElementById('content').innerHTML = html;
 }
@@ -1150,7 +1274,10 @@ function configurarChartDefaults(){
 function crearChart(id, config){
   const canvas = document.getElementById(id);
   if(!canvas) return null;
-  if(STATE.charts[id]){ STATE.charts[id].destroy(); }
+  // Si la carpeta que contiene este gráfico está cerrada, el canvas mide 0x0.
+  // Se omite su construcción; se reconstruye automáticamente al abrir la carpeta (ver mostrarGrupo).
+  if(canvas.offsetParent === null) return null;
+  if(STATE.charts[id]){ STATE.charts[id].destroy(); STATE.charts[id]=null; }
   const ctx = canvas.getContext('2d');
   const chart = new Chart(ctx, config);
   STATE.charts[id] = chart;
@@ -1965,8 +2092,8 @@ function iniciarAplicacion(){
   actualizarEtiquetasFiltro();
   inicializarEventosUI();
   configurarChartDefaults();
+  mostrarGrupo('resumen', false); // carpeta abierta por defecto al cargar
   inicializarTema(); // internamente llama a renderTodo()
-  activarScrollSpy();
   simularCarga();
 }
 
