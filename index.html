@@ -436,7 +436,12 @@ const CONFIG = {
   //  a) Publicar oficialmente: Archivo → Compartir → Publicar en la Web → elige
   //     la hoja "DATA" → formato CSV → pega esa URL aquí (es la más confiable).
   //  b) Verifica que el Sheet tenga activado "Cualquier persona con el enlace" (Ver).
-  CSV_URL_DATA: "https://docs.google.com/spreadsheets/d/1kxP2uGR4KOQ1wf1MpCmJOOqQv_kOKlgMRgiu9uYaxXA/gviz/tq?tqx=out:csv&gid=1023801302",
+  // URL "Publicada en la Web" (Archivo > Compartir > Publicar en la Web > CSV).
+  // Este método sirve un archivo ya calculado y cacheado por Google (se
+  // actualiza solo cada pocos minutos), evitando el timeout que ocurría al
+  // pedirle a gviz que recalculara en vivo las ~40 columnas con fórmulas de
+  // esta hoja cada vez que alguien abre el dashboard.
+  CSV_URL_DATA: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQTOsET1mPWhGcGaE-5fI09dFjFMbUIw5NALOZx_ePFw_bKDpTwpd_P4rdr9ajMwZmp3HUhY9LTkjji/pub?output=csv",
   // URL del CSV de la hoja "PROMOCIÓN DE ENTRADAS" (gid confirmado por el usuario).
   CSV_URL_PROMO: "https://docs.google.com/spreadsheets/d/1kxP2uGR4KOQ1wf1MpCmJOOqQv_kOKlgMRgiu9uYaxXA/gviz/tq?tqx=out:csv&gid=892513436",
   // Año que corresponde a las columnas ENERO..DICIEMBRE de Promoción de Entradas.
@@ -1026,9 +1031,12 @@ async function cargarDatos(){
   STATE.errorCarga = null;
   try{
     if(!CONFIG.CSV_URL_DATA) throw new Error("Sin URL configurada en CONFIG.CSV_URL_DATA");
-    const crudasData = await descargarCSVCompleto(CONFIG.CSV_URL_DATA, (offset)=>{
-      setLoaderProgress(30, `Descargando registros adicionales (${formatoNumero(offset)} hasta ahora)…`);
-    });
+    setLoaderProgress(20, "Descargando hoja DATA (archivo publicado, cacheado por Google)…");
+    // El endpoint "Publicado en la Web" sirve un archivo ya calculado (no en
+    // vivo), por lo que una sola descarga basta — no necesita paginación como
+    // el endpoint gviz/tq. Timeout amplio (35s) solo como margen de seguridad
+    // ante una hoja grande o una conexión lenta.
+    const crudasData = await descargarCSV(CONFIG.CSV_URL_DATA, 35000);
     console.log(`CSV DATA descargado: ${crudasData.length - 1} filas de datos (más encabezado)`);
     setLoaderProgress(45, "Procesando hoja DATA…");
     const headersData = crudasData[0];
