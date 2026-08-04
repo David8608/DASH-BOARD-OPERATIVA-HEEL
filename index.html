@@ -184,6 +184,35 @@ header.topbar{
 .filters-vertical .field select, .filters-vertical .field input{width:100%;}
 .filters-actions-vertical{display:flex; gap:var(--space-2); margin-top:var(--space-2);}
 
+/* ---------- Selección múltiple (filtros comparativos) ---------- */
+.multiselect{position:relative;}
+.ms-btn{
+  width:100%; text-align:left; border:1px solid var(--border-strong); background:var(--card); color:var(--text);
+  padding:8px 10px; border-radius:var(--radius-sm); font-size:13px; height:36px;
+  display:flex; align-items:center; justify-content:space-between; gap:6px;
+}
+.ms-btn::after{content:"▾"; font-size:10px; color:var(--text-tertiary);}
+.ms-btn:hover{border-color:var(--accent);}
+.ms-btn.tiene-seleccion{border-color:var(--accent); color:var(--accent); font-weight:700;}
+.ms-panel{
+  display:none; position:absolute; top:calc(100% + 4px); left:0; right:0; z-index:600;
+  background:var(--card); border:1px solid var(--border-strong); border-radius:var(--radius-md);
+  box-shadow:var(--shadow-hover); max-height:260px; overflow-y:auto; padding:6px;
+}
+.multiselect.abierto .ms-panel{display:block;}
+.ms-option{
+  display:flex; align-items:center; gap:8px; padding:7px 8px; border-radius:6px; font-size:12.5px; cursor:pointer;
+}
+.ms-option:hover{background:var(--card-alt);}
+.ms-option input{flex-shrink:0;}
+.ms-option span{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.ms-actions{display:flex; gap:6px; padding:6px 6px 2px; border-top:1px solid var(--border); margin-top:4px;}
+.ms-actions button{
+  flex:1; font-size:11px; font-weight:700; padding:5px; border-radius:6px; border:1px solid var(--border-strong);
+  background:var(--card-alt); color:var(--text-secondary);
+}
+.ms-actions button:hover{color:var(--accent); border-color:var(--accent);}
+
 .folder-nav{display:flex; flex-direction:column; gap:3px;}
 .folder-header{
   display:flex; align-items:center; gap:8px; width:100%; padding:10px 10px; border-radius:var(--radius-sm);
@@ -392,9 +421,41 @@ footer.app-footer{text-align:center; padding:var(--space-8) 0; font-size:12px; c
       <div class="filters-vertical">
         <div class="field"><label>Fecha inicial</label><input type="date" id="fFechaIni"></div>
         <div class="field"><label>Fecha final</label><input type="date" id="fFechaFin"></div>
-        <div class="field"><label>Ciudad</label><select id="fCiudad"><option value="">Todas</option></select></div>
-        <div class="field"><label>Punto de venta</label><select id="fPunto"><option value="">Todos</option></select></div>
-        <div class="field"><label>Estado</label><select id="fEstado"><option value="">Todos</option></select></div>
+        <div class="field">
+          <label>Ciudad</label>
+          <div class="multiselect" id="msCiudad">
+            <button type="button" class="ms-btn">Todas</button>
+            <div class="ms-panel"></div>
+          </div>
+        </div>
+        <div class="field">
+          <label>Punto de venta</label>
+          <div class="multiselect" id="msPunto">
+            <button type="button" class="ms-btn">Todos</button>
+            <div class="ms-panel"></div>
+          </div>
+        </div>
+        <div class="field">
+          <label>Estado</label>
+          <div class="multiselect" id="msEstado">
+            <button type="button" class="ms-btn">Todos</button>
+            <div class="ms-panel"></div>
+          </div>
+        </div>
+        <div class="field">
+          <label>Tipo de vuelta</label>
+          <div class="multiselect" id="msTipoVuelta">
+            <button type="button" class="ms-btn">Todos</button>
+            <div class="ms-panel"></div>
+          </div>
+        </div>
+        <div class="field">
+          <label>Tipo de servicio de entrega</label>
+          <div class="multiselect" id="msCumplimiento">
+            <button type="button" class="ms-btn">Todos</button>
+            <div class="ms-panel"></div>
+          </div>
+        </div>
         <div class="filters-actions-vertical">
           <button class="btn btn-primary btn-sm" id="btnAplicar" style="flex:1;">Aplicar</button>
           <button class="btn btn-sm" id="btnLimpiar" style="flex:1;">Limpiar</button>
@@ -736,6 +797,7 @@ const NOVEDADES_DEMO = ["Ninguna","Ninguna","Ninguna","Dirección errada","Clien
 const ESTADOS_DEMO = ["Entregado","Entregado","Entregado","Cerrado con novedad","Anulado","En tránsito"];
 const FRANJAS_DEMO = ["07:00 - 09:00","09:00 - 11:00","11:00 - 13:00","13:00 - 15:00","15:00 - 17:00","17:00 - 19:00"];
 const TIPOS_NEGOCIO_DEMO = ["PACIENTE","PACIENTE","VINCULADO","VINCULADO","ADMINISTRATIVO","CONSIGNACION"];
+const TIPOS_VUELTA_DEMO = ["DOMICILIO","DOMICILIO","DOMICILIO","ADMINISTRATIVO","CONSIGNACION"];
 const MOTIVOS_INCUMPLIMIENTO_DEMO = ["NOVEDAD CALL","HORA DE ALMUERZO","DEMORA CLIENTE","RUTA > 2 PEDIDOS","ALTO VOLUMEN PEDIDOS","NOVEDAD APP","ALTO TRAFICO","DEMORA ALISTAMIENTO PDV"];
 const RESPONSABLES_INCUMPLIMIENTO_DEMO = ["CALL","CLIENTE","HEEL","QUICK","FACTOR EXTERNO"];
 
@@ -758,13 +820,14 @@ function generarDatosDemo(cantidad = 9000){
     const tipoNegocio = TIPOS_NEGOCIO_DEMO[Math.floor(Math.random()*TIPOS_NEGOCIO_DEMO.length)];
     const motivoIncumplimiento = cumple ? "#N/D" : MOTIVOS_INCUMPLIMIENTO_DEMO[Math.floor(Math.random()*MOTIVOS_INCUMPLIMIENTO_DEMO.length)];
     const responsableIncumplimiento = cumple ? "#N/D" : RESPONSABLES_INCUMPLIMIENTO_DEMO[Math.floor(Math.random()*RESPONSABLES_INCUMPLIMIENTO_DEMO.length)];
+    const tipoVuelta = TIPOS_VUELTA_DEMO[Math.floor(Math.random()*TIPOS_VUELTA_DEMO.length)];
     filas.push({
       fecha, fechaTexto: formatoFecha(fecha),
       guia: "GU" + (100000+i),
       ciudad: ciudad.nombre,
       punto, responsable, estado,
       cumple, novedad, tiempo,
-      franja, tipoNegocio, motivoIncumplimiento, responsableIncumplimiento,
+      franja, tipoNegocio, motivoIncumplimiento, responsableIncumplimiento, tipoVuelta,
       lat: ciudad.lat + jitterLat, lon: ciudad.lon + jitterLon
     });
   }
@@ -807,6 +870,7 @@ function normalizarFilasData(headers, filasCrudas){
     cumplimiento: buscarColumnaPorNombre(headers, ["cumplimiento","cumple"]),
     tiempo: buscarColumnaPorNombre(headers, ["tiempo entrega","tiempo_entrega","tiempo de entrega","tiempo promedio","tiempo (min)","tiempo"]),
     tipoNegocio: buscarColumnaPorNombre(headers, ["tipo_negocio","tipo negocio","tipo de negocio"]),
+    tipoVuelta: buscarColumnaPorNombre(headers, ["tipo_vuelta","tipo vuelta","tipo de vuelta"]),
     mesData: buscarColumnaPorNombre(headers, ["mes data","mes_data"]),
   };
   // Columnas garantizadas por posición según especificación del proyecto (se resuelven
@@ -828,6 +892,7 @@ function normalizarFilasData(headers, filasCrudas){
   // por posición porque el encabezado "RESPONSABLE" se repite también en la columna M.
   idx.motivoIncumplimiento = letraAIndice("AL");
   idx.responsableIncumplimiento = letraAIndice("AM");
+  idx.tipoVuelta = idx.tipoVuelta !== -1 ? idx.tipoVuelta : letraAIndice("V");
 
   // Contadores de diagnóstico (se exponen en la validación de consola)
   let totalFilas = 0, sinFechaEntrega = 0, recuperadasPorFechaCreacion = 0, sinFechaAlguna = 0;
@@ -867,6 +932,7 @@ function normalizarFilasData(headers, filasCrudas){
       tiempo,
       franja: String(get(idx.franja) || "").trim(),
       tipoNegocio: String(get(idx.tipoNegocio) || "").trim(),
+      tipoVuelta: String(get(idx.tipoVuelta) || "").trim(),
       motivoIncumplimiento: String(get(idx.motivoIncumplimiento) || "").trim(),
       responsableIncumplimiento: String(get(idx.responsableIncumplimiento) || "").trim(),
       lat, lon
@@ -1124,6 +1190,14 @@ function construirLayout(){
         <div class="card"><h3 class="mini-title">Comparativo mensual</h3><div class="chart-box"><canvas id="chartComparativo"></canvas></div></div>
         <div class="card"><h3 class="mini-title">Tendencia (media móvil 7 días)</h3><div class="chart-box"><canvas id="chartTendencia"></canvas></div></div>
       </div>
+      <div class="grid grid-2" style="margin-top:20px;">
+        <div class="card kpi-card">
+          <div class="kpi-label">Tiempo general (promedio)</div>
+          <div class="kpi-value num" id="tiempoGeneralValor">--</div>
+          <div class="module-sub" style="margin-top:8px;">Promedio de todos los servicios con tiempo registrado en el período filtrado</div>
+        </div>
+        <div class="card"><h3 class="mini-title">Tiempo promedio por punto</h3><div class="table-scroll" id="tablaTiempoPorPunto"></div></div>
+      </div>
     </section>
 
     <!-- MÓDULO 4: CUMPLIMIENTO -->
@@ -1181,8 +1255,8 @@ function construirLayout(){
       </div>
       <div class="grid grid-kpi" style="margin-bottom:20px;" id="kpiSinCumplimiento"></div>
       <div class="grid grid-2">
-        <div class="card"><h3 class="mini-title">Por motivo</h3><div class="chart-box tall"><canvas id="chartMotivoIncumplimiento"></canvas></div></div>
-        <div class="card"><h3 class="mini-title">Por responsable</h3><div id="rankResponsableIncumplimiento"></div></div>
+        <div class="card"><h3 class="mini-title">Por motivo (Novedad)</h3><div class="chart-box tall"><canvas id="chartMotivoIncumplimiento"></canvas></div></div>
+        <div class="card"><h3 class="mini-title">Por responsable</h3><div class="chart-box tall"><canvas id="chartResponsableIncumplimiento"></canvas></div></div>
       </div>
     </section>
 
@@ -1332,19 +1406,91 @@ function construirLayout(){
 /* ---------------------------------------------------------------
    7. FILTROS
    --------------------------------------------------------------- */
-function poblarSelect(id, valores){
-  const sel = document.getElementById(id);
-  const actual = sel.value;
-  const primeraOpcion = sel.querySelector('option').outerHTML;
+// Puebla un componente de selección múltiple, conservando las opciones que
+// ya estaban marcadas (si siguen existiendo en el nuevo conjunto de datos).
+function poblarMultiSelect(id, valores, etiquetaTodos){
+  const cont = document.getElementById(id);
+  if(!cont) return;
+  const panel = cont.querySelector('.ms-panel');
+  const boton = cont.querySelector('.ms-btn');
+  const seleccionPrevia = new Set(leerSeleccionMultiple(id));
   const unicos = [...new Set(valores.filter(v=>v && v.trim() !== ""))].sort((a,b)=>a.localeCompare(b,'es'));
-  sel.innerHTML = primeraOpcion + unicos.map(v=>`<option value="${v.replace(/"/g,'&quot;')}">${v}</option>`).join('');
-  if(unicos.includes(actual)) sel.value = actual;
+
+  panel.innerHTML = `
+    <div class="ms-actions">
+      <button type="button" data-ms-accion="todos">Todos</button>
+      <button type="button" data-ms-accion="ninguno">Ninguno</button>
+    </div>
+    ${unicos.map((v,i)=>`
+      <label class="ms-option">
+        <input type="checkbox" value="${v.replace(/"/g,'&quot;')}" ${seleccionPrevia.has(v)?'checked':''}>
+        <span>${v}</span>
+      </label>`).join('')}
+  `;
+
+  if(!cont.dataset.listenerListo){
+    boton.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      document.querySelectorAll('.multiselect.abierto').forEach(m=>{ if(m!==cont) m.classList.remove('abierto'); });
+      cont.classList.toggle('abierto');
+    });
+    panel.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const accion = e.target.closest('button[data-ms-accion]');
+      if(accion){
+        const marcar = accion.dataset.msAccion === 'todos';
+        panel.querySelectorAll('input[type="checkbox"]').forEach(chk=>chk.checked = marcar);
+        actualizarBotonMultiSelect(id, etiquetaTodos);
+      }
+      if(e.target.matches('input[type="checkbox"]')){
+        actualizarBotonMultiSelect(id, etiquetaTodos);
+      }
+    });
+    cont.dataset.listenerListo = "1";
+  }
+  actualizarBotonMultiSelect(id, etiquetaTodos);
 }
 
+function actualizarBotonMultiSelect(id, etiquetaTodos){
+  const cont = document.getElementById(id);
+  const boton = cont.querySelector('.ms-btn');
+  const seleccion = leerSeleccionMultiple(id);
+  if(seleccion.length === 0){
+    boton.textContent = etiquetaTodos;
+    boton.classList.remove('tiene-seleccion');
+  } else if(seleccion.length === 1){
+    boton.textContent = seleccion[0];
+    boton.classList.add('tiene-seleccion');
+  } else {
+    boton.textContent = `${seleccion.length} seleccionados`;
+    boton.classList.add('tiene-seleccion');
+  }
+}
+
+function leerSeleccionMultiple(id){
+  const cont = document.getElementById(id);
+  if(!cont) return [];
+  return [...cont.querySelectorAll('input[type="checkbox"]:checked')].map(chk=>chk.value);
+}
+
+function limpiarMultiSelect(id, etiquetaTodos){
+  const cont = document.getElementById(id);
+  if(!cont) return;
+  cont.querySelectorAll('input[type="checkbox"]').forEach(chk=>chk.checked = false);
+  actualizarBotonMultiSelect(id, etiquetaTodos);
+}
+
+// Cierra cualquier panel de selección múltiple abierto al hacer clic fuera.
+document.addEventListener('click', ()=>{
+  document.querySelectorAll('.multiselect.abierto').forEach(m=>m.classList.remove('abierto'));
+});
+
 function poblarFiltros(){
-  poblarSelect('fCiudad', STATE.data.map(d=>d.ciudad));
-  poblarSelect('fPunto', STATE.data.map(d=>d.punto));
-  poblarSelect('fEstado', STATE.data.map(d=>d.estado));
+  poblarMultiSelect('msCiudad', STATE.data.map(d=>d.ciudad), 'Todas');
+  poblarMultiSelect('msPunto', STATE.data.map(d=>d.punto), 'Todos');
+  poblarMultiSelect('msEstado', STATE.data.map(d=>d.estado), 'Todos');
+  poblarMultiSelect('msTipoVuelta', STATE.data.map(d=>d.tipoVuelta), 'Todos');
+  poblarMultiSelect('msCumplimiento', STATE.data.map(d=>d.cumple===true?'Cumple':(d.cumple===false?'No cumple':null)), 'Todos');
 
   const fechasValidas = STATE.data.map(d=>d.fecha).filter(Boolean);
   if(fechasValidas.length){
@@ -1368,18 +1514,42 @@ function leerFiltrosActuales(){
   return {
     fechaIni: document.getElementById('fFechaIni').value ? new Date(document.getElementById('fFechaIni').value + 'T00:00:00') : null,
     fechaFin: document.getElementById('fFechaFin').value ? new Date(document.getElementById('fFechaFin').value + 'T23:59:59') : null,
-    ciudad: document.getElementById('fCiudad').value,
-    punto: document.getElementById('fPunto').value,
-    estado: document.getElementById('fEstado').value
+    ciudad: leerSeleccionMultiple('msCiudad'),
+    punto: leerSeleccionMultiple('msPunto'),
+    estado: leerSeleccionMultiple('msEstado'),
+    tipoVuelta: leerSeleccionMultiple('msTipoVuelta'),
+    cumplimiento: leerSeleccionMultiple('msCumplimiento')
   };
+}
+
+// Coincide si no hay ninguna opción marcada (equivale a "Todas") o si el valor
+// de la fila está entre las opciones seleccionadas — así los filtros permiten
+// selección múltiple para armar comparativos (ej. Bogotá + Medellín a la vez).
+function coincideMultiple(valorFila, seleccion){
+  if(!seleccion || seleccion.length === 0) return true;
+  return seleccion.includes(valorFila);
+}
+
+// Igual que coincideMultiple, pero normalizando texto (mayúsculas/tildes/espacios)
+// en ambos lados — necesario al cruzar contra la hoja Promoción de Entradas, cuyos
+// nombres de ciudad/punto no siempre coinciden carácter a carácter con DATA.
+function coincideMultipleNormalizado(valorFila, seleccion){
+  if(!seleccion || seleccion.length === 0) return true;
+  const valorNorm = normalizarTexto(valorFila);
+  return seleccion.some(s => normalizarTexto(s) === valorNorm);
 }
 
 function coincideFiltros(fila, f){
   if(f.fechaIni && fila.fecha && fila.fecha < f.fechaIni) return false;
   if(f.fechaFin && fila.fecha && fila.fecha > f.fechaFin) return false;
-  if(f.ciudad && fila.ciudad !== f.ciudad) return false;
-  if(f.punto && fila.punto !== f.punto) return false;
-  if(f.estado && fila.estado !== f.estado) return false;
+  if(!coincideMultiple(fila.ciudad, f.ciudad)) return false;
+  if(!coincideMultiple(fila.punto, f.punto)) return false;
+  if(!coincideMultiple(fila.estado, f.estado)) return false;
+  if(!coincideMultiple(fila.tipoVuelta, f.tipoVuelta)) return false;
+  if(f.cumplimiento && f.cumplimiento.length){
+    const etiquetaFila = fila.cumple===true ? 'Cumple' : (fila.cumple===false ? 'No cumple' : null);
+    if(!coincideMultiple(etiquetaFila, f.cumplimiento)) return false;
+  }
   return true;
 }
 
@@ -1415,9 +1585,11 @@ function aplicarFiltros(){
 }
 
 function limpiarFiltros(){
-  document.getElementById('fCiudad').value = "";
-  document.getElementById('fPunto').value = "";
-  document.getElementById('fEstado').value = "";
+  limpiarMultiSelect('msCiudad', 'Todas');
+  limpiarMultiSelect('msPunto', 'Todos');
+  limpiarMultiSelect('msEstado', 'Todos');
+  limpiarMultiSelect('msTipoVuelta', 'Todos');
+  limpiarMultiSelect('msCumplimiento', 'Todos');
   const fechasValidas = STATE.data.map(d=>d.fecha).filter(Boolean);
   if(fechasValidas.length){
     document.getElementById('fFechaIni').value = toInputDate(new Date(Math.min(...fechasValidas)));
@@ -1470,8 +1642,8 @@ function esPuntoAdministrativo(nombrePunto){
 
 function calcularTicketPromedio(promoFilas, filtros){
   let subset = promoFilas.filter(p=>!esPuntoAdministrativo(p.punto));
-  if(filtros && filtros.ciudad) subset = subset.filter(p=>normalizarTexto(p.ciudad) === normalizarTexto(filtros.ciudad));
-  if(filtros && filtros.punto) subset = subset.filter(p=>normalizarTexto(p.punto) === normalizarTexto(filtros.punto));
+  if(filtros && filtros.ciudad) subset = subset.filter(p=>coincideMultipleNormalizado(p.ciudad, filtros.ciudad));
+  if(filtros && filtros.punto) subset = subset.filter(p=>coincideMultipleNormalizado(p.punto, filtros.punto));
   if(filtros && (filtros.fechaIni || filtros.fechaFin)){
     subset = subset.filter(p=>mesEnRango(p.anio, p.mes, filtros.fechaIni, filtros.fechaFin));
   }
@@ -1739,6 +1911,22 @@ function renderComportamiento(){
     data:{ labels:diasOrdenados.map(d=>d.slice(5)), datasets:[{ label:'Media móvil 7 días', data:tendenciaValores, borderColor:colores.accent, backgroundColor:'transparent', tension:.4, pointRadius:0, borderWidth:2.5 }] },
     options: opcionesBaseChart(colores, {plugins:{legend:{display:false}}})
   });
+
+  // Tiempo general: promedio de todos los servicios con tiempo registrado
+  const tiemposValidos = filas.map(f=>f.tiempo).filter(t=>t !== null && t !== undefined && !isNaN(t));
+  const tiempoGeneral = tiemposValidos.length ? tiemposValidos.reduce((a,b)=>a+b,0)/tiemposValidos.length : null;
+  const elTiempoGeneral = document.getElementById('tiempoGeneralValor');
+  if(elTiempoGeneral) elTiempoGeneral.textContent = tiempoGeneral!==null ? formatoNumero(tiempoGeneral,0)+' min' : 'N/D';
+
+  // Tiempo promedio por punto de venta
+  const porPuntoTiempo = agregarPor(filas, 'punto').filter(a=>a.tiempoProm!==null).sort((a,b)=>b.tiempoProm-a.tiempoProm);
+  const elTablaTiempoPunto = document.getElementById('tablaTiempoPorPunto');
+  if(elTablaTiempoPunto){
+    elTablaTiempoPunto.innerHTML = porPuntoTiempo.length ? `
+      <table class="data-table"><thead><tr><th>Punto</th><th>Servicios</th><th>Tiempo promedio</th></tr></thead><tbody>
+        ${porPuntoTiempo.map(a=>`<tr><td>${a.nombre}</td><td class="num">${formatoNumero(a.total)}</td><td class="num">${formatoNumero(a.tiempoProm,0)} min</td></tr>`).join('')}
+      </tbody></table>` : `<div class="empty-note">Sin datos de tiempo para los filtros seleccionados.</div>`;
+  }
 }
 
 /* ---------------------------------------------------------------
@@ -1902,9 +2090,14 @@ function renderPedidosSinCumplimiento(){
   const conResp = filas.filter(f=>esCausaValida(f.responsableIncumplimiento));
   const mapaResp = new Map();
   conResp.forEach(f=>{ const k = f.responsableIncumplimiento; mapaResp.set(k, (mapaResp.get(k)||0)+1); });
-  const rankingResp = [...mapaResp.entries()].map(([nombre,valor])=>({nombre, valor})).sort((a,b)=>b.valor-a.valor);
-  document.getElementById('rankResponsableIncumplimiento').innerHTML = listaRankingHTML(rankingResp, 10);
+  const responsablesOrdenados = [...mapaResp.entries()].sort((a,b)=>b[1]-a[1]);
+  crearOActualizarChart('chartResponsableIncumplimiento', {
+    type:'bar',
+    data:{ labels:responsablesOrdenados.map(r=>r[0]), datasets:[{ label:'Pedidos', data:responsablesOrdenados.map(r=>r[1]), backgroundColor:colores.warning, borderRadius:4 }] },
+    options: opcionesBaseChart(colores, {indexAxis:'y', plugins:{legend:{display:false}}})
+  });
 }
+
 function renderTicketPromedio(){
   const f = leerFiltrosActuales();
 
@@ -1912,8 +2105,8 @@ function renderTicketPromedio(){
   // (para poder mostrar su información aparte). subset: el conjunto "real"
   // de puntos operativos, usado en todos los promedios y rankings.
   let subsetTodos = STATE.promo;
-  if(f.ciudad) subsetTodos = subsetTodos.filter(p=>normalizarTexto(p.ciudad) === normalizarTexto(f.ciudad));
-  if(f.punto) subsetTodos = subsetTodos.filter(p=>normalizarTexto(p.punto) === normalizarTexto(f.punto));
+  if(f.ciudad) subsetTodos = subsetTodos.filter(p=>coincideMultipleNormalizado(p.ciudad, f.ciudad));
+  if(f.punto) subsetTodos = subsetTodos.filter(p=>coincideMultipleNormalizado(p.punto, f.punto));
   const subset = subsetTodos.filter(p=>!esPuntoAdministrativo(p.punto));
   // Igual que subset, pero además acotado al rango de fecha filtrado (para
   // que el Ranking y la Tabla comparativa reflejen el mes/rango elegido y no
@@ -1974,8 +2167,8 @@ function renderTicketPromedio(){
   // Se excluye también el punto administrativo del cálculo de eficiencia, por la
   // misma razón: su "costo por servicio" no es comparable (1 servicio/mes ficticio).
   let resumen = STATE.promoResumen || [];
-  if(f.ciudad) resumen = resumen.filter(r=>normalizarTexto(r.ciudad) === normalizarTexto(f.ciudad));
-  if(f.punto) resumen = resumen.filter(r=>normalizarTexto(r.punto) === normalizarTexto(f.punto));
+  if(f.ciudad) resumen = resumen.filter(r=>coincideMultipleNormalizado(r.ciudad, f.ciudad));
+  if(f.punto) resumen = resumen.filter(r=>coincideMultipleNormalizado(r.punto, f.punto));
   const conPerCapita = resumen.filter(r=>r.costoPorServicio !== null && !esPuntoAdministrativo(r.punto)).sort((a,b)=>a.costoPorServicio-b.costoPorServicio);
   const adminResumen = resumen.filter(r=>esPuntoAdministrativo(r.punto));
   document.getElementById('tablaPerCapita').innerHTML = (conPerCapita.length || adminResumen.length) ? `
