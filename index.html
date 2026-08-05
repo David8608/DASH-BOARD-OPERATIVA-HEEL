@@ -459,6 +459,13 @@ footer.app-footer{text-align:center; padding:var(--space-8) 0; font-size:12px; c
             <div class="ms-panel"></div>
           </div>
         </div>
+        <div class="field">
+          <label>Tipo de negocio</label>
+          <div class="multiselect" id="msTipoNegocio">
+            <button type="button" class="ms-btn">Todos</button>
+            <div class="ms-panel"></div>
+          </div>
+        </div>
         <div class="filters-actions-vertical">
           <button class="btn btn-primary btn-sm" id="btnAplicar" style="flex:1;">Aplicar</button>
           <button class="btn btn-sm" id="btnLimpiar" style="flex:1;">Limpiar</button>
@@ -473,6 +480,7 @@ footer.app-footer{text-align:center; padding:var(--space-8) 0; font-size:12px; c
 
   <div class="app">
     <div id="demoBannerHost"></div>
+    <div id="resumenFijo"></div>
     <main id="mainContent"></main>
     <footer class="app-footer">HEEL Colombia · Torre de Control Operativa · Datos actualizados diariamente a las 09:00 AM</footer>
   </div>
@@ -1151,23 +1159,19 @@ async function cargarDatos(){
    6. CONSTRUCCIÓN DEL LAYOUT (todos los módulos)
    --------------------------------------------------------------- */
 function construirLayout(){
-  const main = document.getElementById('mainContent');
-  main.innerHTML = `
-    <div id="demoBannerSlot"></div>
-
-    <!-- MÓDULO 1: RESUMEN EJECUTIVO -->
-    <section class="module" data-tab="1">
+  // Resumen Ejecutivo + Índice Operativo quedan FIJOS: se muestran siempre,
+  // sin importar qué pestaña/carpeta esté activa.
+  document.getElementById('resumenFijo').innerHTML = `
+    <section class="module tab-activa" data-tab="fijo-1">
       <div class="module-head">
-        <div><span class="module-eyebrow">Módulo 1</span><h2>Resumen Ejecutivo</h2></div>
+        <div><span class="module-eyebrow">Resumen Operativo</span><h2>Resumen Ejecutivo</h2></div>
         <div class="module-sub">Indicadores clave del período filtrado, comparados contra el período anterior equivalente</div>
       </div>
       <div class="grid grid-kpi" id="kpiGrid"></div>
     </section>
-
-    <!-- MÓDULO 2 + IDX + GAUGE -->
-    <section class="module" data-tab="2">
+    <section class="module tab-activa" data-tab="fijo-2">
       <div class="module-head">
-        <div><span class="module-eyebrow">Módulo 2</span><h2>Índice Operativo</h2></div>
+        <div><span class="module-eyebrow">Resumen Operativo</span><h2>Índice Operativo</h2></div>
         <div class="module-sub">Desempeño consolidado 0–100 (cumplimiento, efectividad, tiempo, novedades y ticket)</div>
       </div>
       <div class="grid grid-idx">
@@ -1178,82 +1182,79 @@ function construirLayout(){
         </div>
       </div>
     </section>
+  `;
 
-    <!-- MÓDULO 3: COMPORTAMIENTO OPERATIVO -->
-    <section class="module" data-tab="3">
+  const main = document.getElementById('mainContent');
+  main.innerHTML = `
+    <div id="demoBannerSlot"></div>
+
+    <!-- MÓDULO 1: COMPORTAMIENTO OPERATIVO -->
+    <section class="module" data-tab="1">
       <div class="module-head">
-        <div><span class="module-eyebrow">Módulo 3</span><h2>Comportamiento Operativo</h2></div>
-        <div class="module-sub">Volumen de servicios en el tiempo y tendencia</div>
+        <div><span class="module-eyebrow">Informe Operativo</span><h2>Comportamiento Operativo</h2></div>
+        <div class="module-sub">Volumen de servicios en el tiempo y fluctuación</div>
       </div>
       <div class="grid grid-2">
         <div class="card"><h3 class="mini-title">Servicios por día</h3><div class="chart-box"><canvas id="chartPorDia"></canvas></div></div>
         <div class="card"><h3 class="mini-title">Servicios por mes</h3><div class="chart-box"><canvas id="chartPorMes"></canvas></div></div>
       </div>
       <div class="grid grid-2" style="margin-top:20px;">
-        <div class="card"><h3 class="mini-title">Comparativo mensual</h3><div class="chart-box"><canvas id="chartComparativo"></canvas></div></div>
+        <div class="card">
+          <h3 class="mini-title">Fluctuación mensual</h3>
+          <div class="module-sub" style="margin-bottom:10px;">% de variación de servicios respecto al mes anterior</div>
+          <div class="chart-box"><canvas id="chartFluctuacion"></canvas></div>
+        </div>
         <div class="card"><h3 class="mini-title">Tendencia (media móvil 7 días)</h3><div class="chart-box"><canvas id="chartTendencia"></canvas></div></div>
       </div>
-      <div class="grid grid-2" style="margin-top:20px;">
-        <div class="card kpi-card">
-          <div class="kpi-label">Tiempo general (promedio)</div>
-          <div class="kpi-value num" id="tiempoGeneralValor">--</div>
-          <div class="module-sub" style="margin-top:8px;">Promedio de todos los servicios con tiempo registrado en el período filtrado</div>
-        </div>
-        <div class="card"><h3 class="mini-title">Tiempo promedio por punto</h3><div class="table-scroll" id="tablaTiempoPorPunto"></div></div>
-      </div>
+      <div class="card" style="margin-top:20px;"><h3 class="mini-title">Tiempo promedio por punto</h3><div class="table-scroll" id="tablaTiempoPorPunto"></div></div>
     </section>
 
-    <!-- MÓDULO 4: CUMPLIMIENTO -->
-    <section class="module" data-tab="4">
+    <!-- MÓDULO 2: CUMPLIMIENTO -->
+    <section class="module" data-tab="2">
       <div class="module-head">
-        <div><span class="module-eyebrow">Módulo 4</span><h2>Cumplimiento</h2></div>
+        <div><span class="module-eyebrow">Informe Operativo</span><h2>Cumplimiento</h2></div>
         <div class="module-sub">Semáforo: 🟢 ≥95%&nbsp;&nbsp;🟡 85–95%&nbsp;&nbsp;🔴 &lt;85%</div>
       </div>
-      <div class="grid grid-3">
-        <div class="card"><h3 class="mini-title">Por ciudad</h3><div class="table-scroll" id="tablaCumpCiudad"></div></div>
+      <div class="grid grid-2">
         <div class="card"><h3 class="mini-title">Por punto de venta</h3><div class="table-scroll" id="tablaCumpPunto"></div></div>
-        <div class="card"><h3 class="mini-title">Por responsable</h3><div class="table-scroll" id="tablaCumpResponsable"></div></div>
+        <div class="card"><h3 class="mini-title">Por ciudad</h3><div class="table-scroll" id="tablaCumpCiudad"></div></div>
       </div>
     </section>
 
-    <!-- MÓDULO 5: PRODUCTIVIDAD -->
-    <section class="module" data-tab="5">
+    <!-- MÓDULO 3: PRODUCTIVIDAD -->
+    <section class="module" data-tab="3">
       <div class="module-head">
-        <div><span class="module-eyebrow">Módulo 5</span><h2>Productividad por Franja Horaria</h2></div>
+        <div><span class="module-eyebrow">Informe Operativo</span><h2>Productividad por Franja Horaria</h2></div>
         <div class="module-sub">Distribución de la operación a lo largo del día</div>
       </div>
       <div class="card"><div class="table-scroll" id="tablaFranja"></div></div>
     </section>
 
-    <!-- MÓDULO 6: NOVEDADES -->
-    <section class="module" data-tab="6">
+    <!-- MÓDULO 4: NOVEDADES -->
+    <section class="module" data-tab="4">
       <div class="module-head">
-        <div><span class="module-eyebrow">Módulo 6</span><h2>Novedades</h2></div>
-        <div class="module-sub">Principales causas y responsables asociados</div>
+        <div><span class="module-eyebrow">Novedades</span><h2>Novedades</h2></div>
+        <div class="module-sub">Principales causas, y comparativo entre puntos de venta</div>
       </div>
-      <div class="grid grid-2">
-        <div class="card"><h3 class="mini-title">Top novedades</h3><div id="rankNovedades"></div></div>
-        <div class="card"><h3 class="mini-title">Top responsables con novedades</h3><div id="rankRespNovedades"></div></div>
-      </div>
+      <div class="card"><h3 class="mini-title">Top novedades</h3><div id="rankNovedades"></div></div>
       <div class="grid grid-2" style="margin-top:20px;">
-        <div class="card"><h3 class="mini-title">Distribución por ciudad</h3><div class="chart-box"><canvas id="chartNovCiudad"></canvas></div></div>
-        <div class="card"><h3 class="mini-title">Distribución por punto</h3><div class="chart-box"><canvas id="chartNovPunto"></canvas></div></div>
+        <div class="card">
+          <h3 class="mini-title">Comparativo entre puntos (servicios totales)</h3>
+          <div class="module-sub" style="margin-bottom:10px;">Si seleccionas 2 o más puntos en el filtro, se comparan esos; si no, se muestran los 10 de mayor volumen</div>
+          <div class="chart-box tall"><canvas id="chartComparativoPuntos"></canvas></div>
+        </div>
+        <div class="card">
+          <h3 class="mini-title">Novedades por punto</h3>
+          <div class="module-sub" style="margin-bottom:10px;">Cantidad de novedades registradas por cada punto de venta</div>
+          <div class="chart-box tall"><canvas id="chartNovPunto"></canvas></div>
+        </div>
       </div>
     </section>
 
-    <!-- MÓDULO 7: SEGMENTACIÓN POR TIPO DE NEGOCIO -->
-    <section class="module" data-tab="7">
+    <!-- MÓDULO 5: PEDIDOS SIN CUMPLIMIENTO DE ENTREGA -->
+    <section class="module" data-tab="5">
       <div class="module-head">
-        <div><span class="module-eyebrow">Módulo 7</span><h2>Segmentación por Tipo de Negocio</h2></div>
-        <div class="module-sub">Paciente, Vinculado, Administrativo y Consignación — volumen y tiempo de gestión</div>
-      </div>
-      <div class="card"><div class="table-scroll" id="tablaTipoNegocio"></div></div>
-    </section>
-
-    <!-- MÓDULO 8: PEDIDOS SIN CUMPLIMIENTO DE ENTREGA -->
-    <section class="module" data-tab="8">
-      <div class="module-head">
-        <div><span class="module-eyebrow">Módulo 8</span><h2>Pedidos sin Cumplimiento de Entrega</h2></div>
+        <div><span class="module-eyebrow">Riesgo y Alertas</span><h2>Pedidos sin Cumplimiento de Entrega</h2></div>
         <div class="module-sub">Motivo real y responsable de cada incumplimiento (columnas Novedad Cumplimiento / Responsable)</div>
       </div>
       <div class="grid grid-kpi" style="margin-bottom:20px;" id="kpiSinCumplimiento"></div>
@@ -1263,21 +1264,28 @@ function construirLayout(){
       </div>
     </section>
 
-    <!-- MÓDULO 9: TICKET PROMEDIO -->
-    <section class="module" data-tab="9">
+    <!-- MÓDULO 6: TICKET PROMEDIO -->
+    <section class="module" data-tab="6">
       <div class="module-head">
-        <div><span class="module-eyebrow">Módulo 9</span><h2>Ticket Promedio</h2></div>
+        <div><span class="module-eyebrow">Financiero</span><h2>Ticket Promedio</h2></div>
         <div class="module-sub">Fuente: hoja Promoción de Entradas</div>
       </div>
-      <div class="grid grid-3">
+      <div class="grid grid-2">
         <div class="card kpi-card">
           <div class="kpi-label">Ticket promedio nacional</div>
           <div class="kpi-value num" id="ticketNacional">--</div>
         </div>
         <div class="card"><h3 class="mini-title">Ticket promedio mensual</h3><div class="chart-box"><canvas id="chartTicketMensual"></canvas></div></div>
-        <div class="card"><h3 class="mini-title">Ranking por punto</h3><div id="rankTicketPunto"></div></div>
       </div>
-      <div class="card" style="margin-top:20px;"><h3 class="mini-title">Tabla comparativa</h3><div class="table-scroll" id="tablaTicket"></div></div>
+      <div class="card" style="margin-top:20px;">
+        <h3 class="mini-title">Ticket promedio de los puntos filtrados</h3>
+        <div class="module-sub" style="margin-bottom:10px;">Selecciona ciudad(es) y/o punto(s) en el filtro para comparar su ticket promedio</div>
+        <div class="chart-box tall"><canvas id="chartTicketFiltrados"></canvas></div>
+      </div>
+      <div class="grid grid-2" style="margin-top:20px;">
+        <div class="card"><h3 class="mini-title">Ranking por punto</h3><div id="rankTicketPunto"></div></div>
+        <div class="card"><h3 class="mini-title">Tabla comparativa</h3><div class="table-scroll" id="tablaTicket" style="max-height:280px;"></div></div>
+      </div>
       <div class="card" style="margin-top:20px;">
         <h3 class="mini-title">Per Cápita — Costo por servicio entregado</h3>
         <div class="module-sub" style="margin-bottom:14px;">Costo operativo fijo del punto (columna Costo) dividido entre el total de servicios del año — a menor valor, mayor eficiencia</div>
@@ -1285,10 +1293,10 @@ function construirLayout(){
       </div>
     </section>
 
-    <!-- MÓDULO 10: RANKING NACIONAL -->
-    <section class="module" data-tab="10">
+    <!-- MÓDULO 7: RANKING NACIONAL -->
+    <section class="module" data-tab="7">
       <div class="module-head">
-        <div><span class="module-eyebrow">Módulo 10</span><h2>Ranking Nacional</h2></div>
+        <div><span class="module-eyebrow">Riesgo y Alertas</span><h2>Ranking Nacional</h2></div>
         <div class="module-sub">Comparativo consolidado de todas las dimensiones operativas</div>
       </div>
       <div class="grid grid-3">
@@ -1303,28 +1311,28 @@ function construirLayout(){
       </div>
     </section>
 
-    <!-- MÓDULO 9: CENTRO DE ALERTAS -->
-    <section class="module" data-tab="11">
+    <!-- MÓDULO 8: CENTRO DE ALERTAS -->
+    <section class="module" data-tab="8">
       <div class="module-head">
-        <div><span class="module-eyebrow">Módulo 11</span><h2>Centro de Alertas</h2></div>
+        <div><span class="module-eyebrow">Riesgo y Alertas</span><h2>Centro de Alertas</h2></div>
         <div class="module-sub">Generadas automáticamente a partir de los datos filtrados</div>
       </div>
       <div class="card" id="panelAlertas"></div>
     </section>
 
-    <!-- MÓDULO 10: INSIGHTS DEL DÍA -->
-    <section class="module" data-tab="12">
+    <!-- MÓDULO 9: INSIGHTS DEL DÍA -->
+    <section class="module" data-tab="9">
       <div class="module-head">
-        <div><span class="module-eyebrow">Módulo 12</span><h2>Insights del Día</h2></div>
+        <div><span class="module-eyebrow">Riesgo y Alertas</span><h2>Insights del Día</h2></div>
         <div class="module-sub">Lectura automática del comportamiento operativo</div>
       </div>
       <div class="card" id="panelInsights"></div>
     </section>
 
-    <!-- MÓDULO 11: MAPA NACIONAL DE SERVICIOS -->
-    <section class="module" data-tab="13">
+    <!-- MÓDULO 10: MAPA NACIONAL DE SERVICIOS -->
+    <section class="module" data-tab="10">
       <div class="module-head">
-        <div><span class="module-eyebrow">Módulo 13</span><h2>Mapa Nacional de Servicios</h2></div>
+        <div><span class="module-eyebrow">Mapa y Detalle</span><h2>Mapa Nacional de Servicios</h2></div>
         <div class="module-sub">Herramienta de análisis operativo y cobertura geográfica</div>
       </div>
       <div class="card" id="mapCard">
@@ -1365,10 +1373,10 @@ function construirLayout(){
       </div>
     </section>
 
-    <!-- MÓDULO 12: TABLA OPERATIVA -->
-    <section class="module" data-tab="14">
+    <!-- MÓDULO 11: TABLA OPERATIVA -->
+    <section class="module" data-tab="11">
       <div class="module-head">
-        <div><span class="module-eyebrow">Módulo 14</span><h2>Tabla Operativa</h2></div>
+        <div><span class="module-eyebrow">Mapa y Detalle</span><h2>Tabla Operativa</h2></div>
         <div class="module-sub">Detalle completo de servicios filtrados</div>
       </div>
       <div class="card">
@@ -1494,6 +1502,7 @@ function poblarFiltros(){
   poblarMultiSelect('msEstado', STATE.data.map(d=>d.estado), 'Todos');
   poblarMultiSelect('msTipoVuelta', STATE.data.map(d=>d.tipoVuelta), 'Todos');
   poblarMultiSelect('msCumplimiento', STATE.data.map(d=>d.cumple===true?'Cumple':(d.cumple===false?'No cumple':null)), 'Todos');
+  poblarMultiSelect('msTipoNegocio', STATE.data.map(d=>d.tipoNegocio), 'Todos');
 
   const fechasValidas = STATE.data.map(d=>d.fecha).filter(Boolean);
   if(fechasValidas.length){
@@ -1521,7 +1530,8 @@ function leerFiltrosActuales(){
     punto: leerSeleccionMultiple('msPunto'),
     estado: leerSeleccionMultiple('msEstado'),
     tipoVuelta: leerSeleccionMultiple('msTipoVuelta'),
-    cumplimiento: leerSeleccionMultiple('msCumplimiento')
+    cumplimiento: leerSeleccionMultiple('msCumplimiento'),
+    tipoNegocio: leerSeleccionMultiple('msTipoNegocio')
   };
 }
 
@@ -1553,6 +1563,7 @@ function coincideFiltros(fila, f){
     const etiquetaFila = fila.cumple===true ? 'Cumple' : (fila.cumple===false ? 'No cumple' : null);
     if(!coincideMultiple(etiquetaFila, f.cumplimiento)) return false;
   }
+  if(!coincideMultiple(fila.tipoNegocio, f.tipoNegocio)) return false;
   return true;
 }
 
@@ -1593,6 +1604,7 @@ function limpiarFiltros(){
   limpiarMultiSelect('msEstado', 'Todos');
   limpiarMultiSelect('msTipoVuelta', 'Todos');
   limpiarMultiSelect('msCumplimiento', 'Todos');
+  limpiarMultiSelect('msTipoNegocio', 'Todos');
   const fechasValidas = STATE.data.map(d=>d.fecha).filter(Boolean);
   if(fechasValidas.length){
     document.getElementById('fFechaIni').value = toInputDate(new Date(Math.min(...fechasValidas)));
@@ -1926,34 +1938,43 @@ function renderComportamiento(){
     });
   }
 
-  // Comparativo mensual: mes actual vs mes anterior equivalente en cumplimiento y volumen
+  // Fluctuación mensual: % de variación de servicios respecto al mes anterior.
+  // Se usa un gráfico de barras con color según el signo (verde=sube, rojo=baja),
+  // que es mucho más claro para visualizar movimiento que combinar volumen con
+  // cumplimiento en el mismo eje.
   if(comparativa){
-    const datasetsComparativo = comparativa.valores.map((valor, i)=>{
+    const datasetsFluctuacion = comparativa.valores.map((valor, i)=>{
       const subset = filas.filter(x=>x[comparativa.campo] === valor);
       const mapaSubset = new Map();
       subset.forEach(x=>{ if(x.fecha){ const k = `${x.fecha.getFullYear()}-${String(x.fecha.getMonth()+1).padStart(2,'0')}`; mapaSubset.set(k, (mapaSubset.get(k)||0)+1); } });
-      return { label: valor, data: mesesOrdenados.map(m=>mapaSubset.get(m)||0), backgroundColor: PALETA_COMPARATIVA[i % PALETA_COMPARATIVA.length], borderRadius:4 };
+      const variaciones = mesesOrdenados.map((m, idx)=>{
+        if(idx === 0) return null;
+        const actual = mapaSubset.get(m) || 0;
+        const anterior = mapaSubset.get(mesesOrdenados[idx-1]) || 0;
+        return anterior ? Math.round(((actual-anterior)/anterior)*1000)/10 : null;
+      });
+      return { label: valor, data: variaciones, borderColor: PALETA_COMPARATIVA[i % PALETA_COMPARATIVA.length], backgroundColor: PALETA_COMPARATIVA[i % PALETA_COMPARATIVA.length], tension:.3, borderWidth:2.5, type:'line' };
     });
-    crearOActualizarChart('chartComparativo', {
-      type:'bar',
-      data:{ labels:mesesOrdenados, datasets:datasetsComparativo },
+    crearOActualizarChart('chartFluctuacion', {
+      type:'line',
+      data:{ labels:mesesOrdenados, datasets:datasetsFluctuacion },
       options: opcionesBaseChart(colores, {plugins:{legend:{display:true}}})
     });
   } else {
-    crearOActualizarChart('chartComparativo', {
+    const variaciones = mesesOrdenados.map((m, idx)=>{
+      if(idx === 0) return null;
+      const actual = porMes.get(m) || 0;
+      const anterior = porMes.get(mesesOrdenados[idx-1]) || 0;
+      return anterior ? Math.round(((actual-anterior)/anterior)*1000)/10 : null;
+    });
+    crearOActualizarChart('chartFluctuacion', {
       type:'bar',
-      data:{ labels:mesesOrdenados, datasets:[
-        { label:'Servicios', data:mesesOrdenados.map(m=>porMes.get(m)), backgroundColor:colores.accent, borderRadius:4, yAxisID:'y' },
-        { label:'Cumplimiento %', data:mesesOrdenados.map(m=>{
-            const subset = filas.filter(f=>f.fecha && `${f.fecha.getFullYear()}-${String(f.fecha.getMonth()+1).padStart(2,'0')}`===m);
-            const met = calcularMetricas(subset); return met.cumplimiento ? Math.round(met.cumplimiento) : 0;
-          }), type:'line', borderColor:colores.success, backgroundColor:colores.success, yAxisID:'y1', tension:.35 }
-      ]},
-      options: opcionesBaseChart(colores, { scales:{
-        x:{grid:{color:colores.grid}, ticks:{color:colores.text}},
-        y:{position:'left', grid:{color:colores.grid}, ticks:{color:colores.text}},
-        y1:{position:'right', grid:{display:false}, ticks:{color:colores.text}, min:0, max:100}
-      }})
+      data:{ labels:mesesOrdenados, datasets:[{
+        label:'Variación % vs. mes anterior', data:variaciones,
+        backgroundColor: variaciones.map(v => v===null ? colores.grid : (v>=0 ? colores.success : colores.danger)),
+        borderRadius:4
+      }] },
+      options: opcionesBaseChart(colores, {plugins:{legend:{display:false}}})
     });
   }
 
@@ -1969,12 +1990,6 @@ function renderComportamiento(){
     data:{ labels:diasOrdenados.map(d=>d.slice(5)), datasets:[{ label:'Media móvil 7 días', data:tendenciaValores, borderColor:colores.accent, backgroundColor:'transparent', tension:.4, pointRadius:0, borderWidth:2.5 }] },
     options: opcionesBaseChart(colores, {plugins:{legend:{display:false}}})
   });
-
-  // Tiempo general: promedio de todos los servicios con tiempo registrado
-  const tiemposValidos = filas.map(f=>f.tiempo).filter(t=>t !== null && t !== undefined && !isNaN(t));
-  const tiempoGeneral = tiemposValidos.length ? tiemposValidos.reduce((a,b)=>a+b,0)/tiemposValidos.length : null;
-  const elTiempoGeneral = document.getElementById('tiempoGeneralValor');
-  if(elTiempoGeneral) elTiempoGeneral.textContent = tiempoGeneral!==null ? formatoNumero(tiempoGeneral,0)+' min' : 'N/D';
 
   // Tiempo promedio por punto de venta
   const porPuntoTiempo = agregarPor(filas, 'punto').filter(a=>a.tiempoProm!==null).sort((a,b)=>b.tiempoProm-a.tiempoProm);
@@ -2002,9 +2017,8 @@ function tablaSemaforoHTML(agregado, etiquetaCol){
 }
 
 function renderCumplimiento(){
-  document.getElementById('tablaCumpCiudad').innerHTML = tablaSemaforoHTML(agregarPor(STATE.filtered,'ciudad'), 'Ciudad');
   document.getElementById('tablaCumpPunto').innerHTML = tablaSemaforoHTML(agregarPor(STATE.filtered,'punto'), 'Punto');
-  document.getElementById('tablaCumpResponsable').innerHTML = tablaSemaforoHTML(agregarPor(STATE.filtered,'responsable'), 'Responsable');
+  document.getElementById('tablaCumpCiudad').innerHTML = tablaSemaforoHTML(agregarPor(STATE.filtered,'ciudad'), 'Ciudad');
 }
 
 /* ---------------------------------------------------------------
@@ -2062,50 +2076,33 @@ function renderNovedades(){
   document.getElementById('rankNovedades').innerHTML = listaRankingHTML(porNovedad);
   document.getElementById('rankNovedades2') && (document.getElementById('rankNovedades2').innerHTML = listaRankingHTML(porNovedad));
 
-  const porResp = agregarPor(filas, 'responsable').sort((a,b)=>b.total-a.total)
-    .map(a=>({nombre:a.nombre, valor:a.total}));
-  document.getElementById('rankRespNovedades').innerHTML = listaRankingHTML(porResp);
-
   const colores = estiloEjes();
-  const porCiudad = agregarPor(filas, 'ciudad').sort((a,b)=>b.total-a.total);
-  crearOActualizarChart('chartNovCiudad', {
-    type:'doughnut',
-    data:{ labels:porCiudad.map(c=>c.nombre), datasets:[{ data:porCiudad.map(c=>c.total), backgroundColor:[colores.accent,colores.accentStrong,colores.success,colores.warning,colores.danger,'#8B5CF6','#EC4899','#14B8A6'] }] },
-    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'right', labels:{ color:colores.text, boxWidth:10, font:{size:10} } } } }
+
+  // Comparativo entre puntos: si hay 2+ puntos seleccionados en el filtro, se
+  // comparan exactamente esos; si no, se muestran los 10 de mayor volumen
+  // total (todos los servicios, no solo los que tienen novedad).
+  const comparativa = obtenerDimensionComparativa();
+  let puntosComparar;
+  if(comparativa && comparativa.campo === 'punto'){
+    puntosComparar = agregarPor(STATE.filtered.filter(f=>comparativa.valores.includes(f.punto)), 'punto')
+      .sort((a,b)=>b.total-a.total);
+  } else {
+    puntosComparar = agregarPor(STATE.filtered, 'punto').sort((a,b)=>b.total-a.total).slice(0,10);
+  }
+  crearOActualizarChart('chartComparativoPuntos', {
+    type:'bar',
+    data:{ labels:puntosComparar.map(p=>p.nombre), datasets:[{ label:'Servicios totales', data:puntosComparar.map(p=>p.total), backgroundColor:colores.accent, borderRadius:4 }] },
+    options: opcionesBaseChart(colores, {indexAxis:'y', plugins:{legend:{display:false}}})
   });
 
+  // Novedades por punto: cantidad de novedades (no el total de servicios) por
+  // cada punto de venta, para identificar dónde se concentran los problemas.
   const porPunto = agregarPor(filas, 'punto').sort((a,b)=>b.total-a.total).slice(0,10);
   crearOActualizarChart('chartNovPunto', {
     type:'bar',
     data:{ labels:porPunto.map(p=>p.nombre), datasets:[{ label:'Novedades', data:porPunto.map(p=>p.total), backgroundColor:colores.danger, borderRadius:4 }] },
     options: opcionesBaseChart(colores, {indexAxis:'y', plugins:{legend:{display:false}}})
   });
-}
-
-/* ---------------------------------------------------------------
-   16B. RENDER — MÓDULO 7: SEGMENTACIÓN POR TIPO DE NEGOCIO
-   --------------------------------------------------------------- */
-function renderTipoNegocio(){
-  const filas = STATE.filtered.filter(f=>f.tipoNegocio && f.tipoNegocio.trim() !== "");
-  const agregado = agregarPor(filas, 'tipoNegocio').sort((a,b)=>b.total-a.total);
-  if(!agregado.length){
-    document.getElementById('tablaTipoNegocio').innerHTML = `<div class="empty-note">La columna "tipo_negocio" no se encontró en la hoja DATA o no tiene datos para este filtro.</div>`;
-    return;
-  }
-  const totalGeneral = agregado.reduce((s,a)=>s+a.total,0);
-  document.getElementById('tablaTipoNegocio').innerHTML = `
-    <table class="data-table"><thead><tr>
-      <th>Tipo de negocio</th><th>Servicios</th><th>%</th><th>Tiempo de gestión promedio</th><th>Cumplimiento</th>
-    </tr></thead><tbody>
-      ${agregado.map(a=>`
-        <tr>
-          <td>${a.nombre}</td>
-          <td class="num">${formatoNumero(a.total)}</td>
-          <td class="num">${formatoPct(totalGeneral? a.total/totalGeneral*100:0)}</td>
-          <td class="num">${a.tiempoProm!==null? formatoNumero(a.tiempoProm,0)+' min':'N/D'}</td>
-          <td class="num">${formatoPct(a.cumplimiento)}</td>
-        </tr>`).join('')}
-    </tbody></table>`;
 }
 
 /* ---------------------------------------------------------------
@@ -2201,6 +2198,18 @@ function renderTicketPromedio(){
   });
   const rankingPuntos = [...porPunto.entries()].map(([nombre, arr])=>({nombre, valor: arr.reduce((a,b)=>a+b,0)/arr.length}))
     .sort((a,b)=>b.valor-a.valor);
+
+  // Ticket promedio de los puntos filtrados: como subsetEnRango ya respeta
+  // los filtros de ciudad/punto, rankingPuntos ya representa exactamente esa
+  // selección. Si no hay ningún filtro activo, se limita a los 10 principales
+  // para que el gráfico siga siendo legible.
+  const hayFiltroActivo = (f.ciudad && f.ciudad.length) || (f.punto && f.punto.length);
+  const datosFiltrados = hayFiltroActivo ? rankingPuntos : rankingPuntos.slice(0,10);
+  crearOActualizarChart('chartTicketFiltrados', {
+    type:'bar',
+    data:{ labels:datosFiltrados.map(p=>p.nombre), datasets:[{ label:'Ticket promedio', data:datosFiltrados.map(p=>Math.round(p.valor)), backgroundColor:colores.accentStrong, borderRadius:4 }] },
+    options: opcionesBaseChart(colores, {indexAxis:'y', plugins:{legend:{display:false}}})
+  });
   document.getElementById('rankTicketPunto').innerHTML = listaRankingHTML(rankingPuntos, 10, 'moneda');
 
   const filasTabla = [...porPunto.entries()].map(([punto, arr])=>{
@@ -2675,23 +2684,27 @@ const MODULOS_CONFIG = [
   { id:4,  corto:"Cumplimiento",            nombre:"Cumplimiento",                         fn:renderCumplimiento },
   { id:5,  corto:"Productividad",           nombre:"Productividad por Franja",             fn:renderFranja },
   { id:6,  corto:"Novedades",               nombre:"Novedades",                            fn:renderNovedades },
-  { id:7,  corto:"Tipo de negocio",         nombre:"Segmentación por Tipo de Negocio",     fn:renderTipoNegocio },
-  { id:8,  corto:"Sin cumplimiento",        nombre:"Pedidos sin Cumplimiento",             fn:renderPedidosSinCumplimiento },
-  { id:9,  corto:"Ticket promedio",         nombre:"Ticket Promedio",                      fn:renderTicketPromedio },
-  { id:10, corto:"Ranking nacional",        nombre:"Ranking Nacional",                     fn:renderRankingNacional },
-  { id:11, corto:"Centro de alertas",       nombre:"Centro de Alertas",                    fn:renderAlertas },
-  { id:12, corto:"Insights del día",        nombre:"Insights del Día",                     fn:renderInsights },
-  { id:13, corto:"Mapa nacional",           nombre:"Mapa Nacional",                        fn:renderMapa },
-  { id:14, corto:"Tabla operativa",         nombre:"Tabla Operativa",                      fn:renderTablaOperativa }
+  { id:7,  corto:"Sin cumplimiento",        nombre:"Pedidos sin Cumplimiento",             fn:renderPedidosSinCumplimiento },
+  { id:8,  corto:"Ticket promedio",         nombre:"Ticket Promedio",                      fn:renderTicketPromedio },
+  { id:9,  corto:"Ranking nacional",        nombre:"Ranking Nacional",                     fn:renderRankingNacional },
+  { id:10, corto:"Centro de alertas",       nombre:"Centro de Alertas",                    fn:renderAlertas },
+  { id:11, corto:"Insights del día",        nombre:"Insights del Día",                     fn:renderInsights },
+  { id:12, corto:"Mapa nacional",           nombre:"Mapa Nacional",                        fn:renderMapa },
+  { id:13, corto:"Tabla operativa",         nombre:"Tabla Operativa",                      fn:renderTablaOperativa }
 ];
 
-// Agrupación de los 14 módulos en "carpetas" para la navegación lateral.
+// Los ids usados aquí ("fijo-1"/"fijo-2") son los del Resumen Ejecutivo e
+// Índice Operativo, que ya no viven dentro de #mainContent: están fijos en
+// #resumenFijo y se renderizan siempre, sin pasar por el sistema de pestañas.
+const IDS_FIJOS = [1, 2];
+
+// Agrupación de los módulos restantes en carpetas para la navegación lateral.
 const CARPETAS_CONFIG = [
-  { nombre:"Resumen",             icono:"📂", modulos:[1,2] },
-  { nombre:"Operación",           icono:"📁", modulos:[3,4,5,7] },
-  { nombre:"Novedades y alertas", icono:"📁", modulos:[6,8,11,12] },
-  { nombre:"Financiero",          icono:"📁", modulos:[9,10] },
-  { nombre:"Mapa y detalle",      icono:"📁", modulos:[13,14] }
+  { nombre:"Informe Operativo",   icono:"📁", modulos:[3,4,5] },
+  { nombre:"Novedades",           icono:"📁", modulos:[6] },
+  { nombre:"Financiero",          icono:"📁", modulos:[8] },
+  { nombre:"Riesgo y Alertas",    icono:"📁", modulos:[7,9,10,11] },
+  { nombre:"Mapa y detalle",      icono:"📁", modulos:[12,13] }
 ];
 
 function renderizarTodo(){
