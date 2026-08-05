@@ -202,10 +202,13 @@ header.topbar{
 .multiselect.abierto .ms-panel{display:block;}
 .ms-option{
   display:flex; align-items:center; gap:8px; padding:7px 8px; border-radius:6px; font-size:12.5px; cursor:pointer;
+  color:var(--text);
 }
 .ms-option:hover{background:var(--card-alt);}
-.ms-option input{flex-shrink:0;}
-.ms-option span{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.ms-option input[type="checkbox"]{
+  flex-shrink:0; width:15px; height:15px; margin:0; accent-color:var(--accent); cursor:pointer;
+}
+.ms-option span{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text);}
 .ms-actions{display:flex; gap:6px; padding:6px 6px 2px; border-top:1px solid var(--border); margin-top:4px;}
 .ms-actions button{
   flex:1; font-size:11px; font-weight:700; padding:5px; border-radius:6px; border:1px solid var(--border-strong);
@@ -1860,44 +1863,99 @@ function opcionesBaseChart(colores, extra={}){
 /* ---------------------------------------------------------------
    12. RENDER — MÓDULO 3: COMPORTAMIENTO OPERATIVO
    --------------------------------------------------------------- */
+const PALETA_COMPARATIVA = ['#0F6CBD','#0F9D58','#F2A600','#D13438','#0A4E8A','#8B5CF6','#EC4899','#14B8A6','#F97316','#6366F1'];
+
+// Cuando el usuario selecciona 2 o más valores en un filtro de comparación
+// (Ciudad o Punto de venta), los gráficos de volumen dejan de agrupar todo en
+// una sola serie y muestran una serie/barra por cada valor seleccionado, para
+// poder comparar entre ellos en la misma gráfica.
+function obtenerDimensionComparativa(){
+  const f = leerFiltrosActuales();
+  if(f.ciudad && f.ciudad.length >= 2) return { campo:'ciudad', valores:f.ciudad };
+  if(f.punto && f.punto.length >= 2) return { campo:'punto', valores:f.punto };
+  return null;
+}
+
 function renderComportamiento(){
   const colores = estiloEjes();
   const filas = STATE.filtered;
+  const comparativa = obtenerDimensionComparativa();
 
   const porDia = new Map();
   filas.forEach(f=>{ if(f.fecha){ const k = toInputDate(f.fecha); porDia.set(k, (porDia.get(k)||0)+1); } });
   const diasOrdenados = [...porDia.keys()].sort();
-  crearOActualizarChart('chartPorDia', {
-    type:'bar',
-    data:{ labels:diasOrdenados.map(d=>d.slice(5)), datasets:[{ label:'Servicios', data:diasOrdenados.map(d=>porDia.get(d)), backgroundColor:colores.accent, borderRadius:4 }] },
-    options: opcionesBaseChart(colores, {plugins:{legend:{display:false}}})
-  });
 
   const porMes = new Map();
   filas.forEach(f=>{ if(f.fecha){ const k = `${f.fecha.getFullYear()}-${String(f.fecha.getMonth()+1).padStart(2,'0')}`; porMes.set(k, (porMes.get(k)||0)+1); } });
   const mesesOrdenados = [...porMes.keys()].sort();
-  crearOActualizarChart('chartPorMes', {
-    type:'bar',
-    data:{ labels:mesesOrdenados, datasets:[{ label:'Servicios', data:mesesOrdenados.map(m=>porMes.get(m)), backgroundColor:colores.accentStrong, borderRadius:4 }] },
-    options: opcionesBaseChart(colores, {plugins:{legend:{display:false}}})
-  });
+
+  if(comparativa){
+    const datasetsDia = comparativa.valores.map((valor, i)=>{
+      const subset = filas.filter(x=>x[comparativa.campo] === valor);
+      const mapaSubset = new Map();
+      subset.forEach(x=>{ if(x.fecha){ const k = toInputDate(x.fecha); mapaSubset.set(k, (mapaSubset.get(k)||0)+1); } });
+      return { label: valor, data: diasOrdenados.map(d=>mapaSubset.get(d)||0), backgroundColor: PALETA_COMPARATIVA[i % PALETA_COMPARATIVA.length], borderRadius:4 };
+    });
+    crearOActualizarChart('chartPorDia', {
+      type:'bar',
+      data:{ labels:diasOrdenados.map(d=>d.slice(5)), datasets:datasetsDia },
+      options: opcionesBaseChart(colores, {plugins:{legend:{display:true}}})
+    });
+
+    const datasetsMes = comparativa.valores.map((valor, i)=>{
+      const subset = filas.filter(x=>x[comparativa.campo] === valor);
+      const mapaSubset = new Map();
+      subset.forEach(x=>{ if(x.fecha){ const k = `${x.fecha.getFullYear()}-${String(x.fecha.getMonth()+1).padStart(2,'0')}`; mapaSubset.set(k, (mapaSubset.get(k)||0)+1); } });
+      return { label: valor, data: mesesOrdenados.map(m=>mapaSubset.get(m)||0), backgroundColor: PALETA_COMPARATIVA[i % PALETA_COMPARATIVA.length], borderRadius:4 };
+    });
+    crearOActualizarChart('chartPorMes', {
+      type:'bar',
+      data:{ labels:mesesOrdenados, datasets:datasetsMes },
+      options: opcionesBaseChart(colores, {plugins:{legend:{display:true}}})
+    });
+  } else {
+    crearOActualizarChart('chartPorDia', {
+      type:'bar',
+      data:{ labels:diasOrdenados.map(d=>d.slice(5)), datasets:[{ label:'Servicios', data:diasOrdenados.map(d=>porDia.get(d)), backgroundColor:colores.accent, borderRadius:4 }] },
+      options: opcionesBaseChart(colores, {plugins:{legend:{display:false}}})
+    });
+    crearOActualizarChart('chartPorMes', {
+      type:'bar',
+      data:{ labels:mesesOrdenados, datasets:[{ label:'Servicios', data:mesesOrdenados.map(m=>porMes.get(m)), backgroundColor:colores.accentStrong, borderRadius:4 }] },
+      options: opcionesBaseChart(colores, {plugins:{legend:{display:false}}})
+    });
+  }
 
   // Comparativo mensual: mes actual vs mes anterior equivalente en cumplimiento y volumen
-  crearOActualizarChart('chartComparativo', {
-    type:'bar',
-    data:{ labels:mesesOrdenados, datasets:[
-      { label:'Servicios', data:mesesOrdenados.map(m=>porMes.get(m)), backgroundColor:colores.accent, borderRadius:4, yAxisID:'y' },
-      { label:'Cumplimiento %', data:mesesOrdenados.map(m=>{
-          const subset = filas.filter(f=>f.fecha && `${f.fecha.getFullYear()}-${String(f.fecha.getMonth()+1).padStart(2,'0')}`===m);
-          const met = calcularMetricas(subset); return met.cumplimiento ? Math.round(met.cumplimiento) : 0;
-        }), type:'line', borderColor:colores.success, backgroundColor:colores.success, yAxisID:'y1', tension:.35 }
-    ]},
-    options: opcionesBaseChart(colores, { scales:{
-      x:{grid:{color:colores.grid}, ticks:{color:colores.text}},
-      y:{position:'left', grid:{color:colores.grid}, ticks:{color:colores.text}},
-      y1:{position:'right', grid:{display:false}, ticks:{color:colores.text}, min:0, max:100}
-    }})
-  });
+  if(comparativa){
+    const datasetsComparativo = comparativa.valores.map((valor, i)=>{
+      const subset = filas.filter(x=>x[comparativa.campo] === valor);
+      const mapaSubset = new Map();
+      subset.forEach(x=>{ if(x.fecha){ const k = `${x.fecha.getFullYear()}-${String(x.fecha.getMonth()+1).padStart(2,'0')}`; mapaSubset.set(k, (mapaSubset.get(k)||0)+1); } });
+      return { label: valor, data: mesesOrdenados.map(m=>mapaSubset.get(m)||0), backgroundColor: PALETA_COMPARATIVA[i % PALETA_COMPARATIVA.length], borderRadius:4 };
+    });
+    crearOActualizarChart('chartComparativo', {
+      type:'bar',
+      data:{ labels:mesesOrdenados, datasets:datasetsComparativo },
+      options: opcionesBaseChart(colores, {plugins:{legend:{display:true}}})
+    });
+  } else {
+    crearOActualizarChart('chartComparativo', {
+      type:'bar',
+      data:{ labels:mesesOrdenados, datasets:[
+        { label:'Servicios', data:mesesOrdenados.map(m=>porMes.get(m)), backgroundColor:colores.accent, borderRadius:4, yAxisID:'y' },
+        { label:'Cumplimiento %', data:mesesOrdenados.map(m=>{
+            const subset = filas.filter(f=>f.fecha && `${f.fecha.getFullYear()}-${String(f.fecha.getMonth()+1).padStart(2,'0')}`===m);
+            const met = calcularMetricas(subset); return met.cumplimiento ? Math.round(met.cumplimiento) : 0;
+          }), type:'line', borderColor:colores.success, backgroundColor:colores.success, yAxisID:'y1', tension:.35 }
+      ]},
+      options: opcionesBaseChart(colores, { scales:{
+        x:{grid:{color:colores.grid}, ticks:{color:colores.text}},
+        y:{position:'left', grid:{color:colores.grid}, ticks:{color:colores.text}},
+        y1:{position:'right', grid:{display:false}, ticks:{color:colores.text}, min:0, max:100}
+      }})
+    });
+  }
 
   // Tendencia: media móvil de 7 días sobre volumen diario
   const ventana = 7;
