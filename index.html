@@ -839,6 +839,7 @@ function generarDatosDemo(cantidad = 9000){
       punto, responsable, estado,
       cumple, novedad, tiempo,
       franja, tipoNegocio, motivoIncumplimiento, responsableIncumplimiento, tipoVuelta,
+      tipoServicioEntrega: cumple ? "CUMPLE" : "NO CUMPLE",
       lat: ciudad.lat + jitterLat, lon: ciudad.lon + jitterLon
     });
   }
@@ -943,6 +944,7 @@ function normalizarFilasData(headers, filasCrudas){
       tiempo,
       franja: String(get(idx.franja) || "").trim(),
       tipoNegocio: String(get(idx.tipoNegocio) || "").trim(),
+      tipoServicioEntrega: String(get(idx.cumplimiento) || "").trim(),
       tipoVuelta: String(get(idx.tipoVuelta) || "").trim(),
       motivoIncumplimiento: String(get(idx.motivoIncumplimiento) || "").trim(),
       responsableIncumplimiento: String(get(idx.responsableIncumplimiento) || "").trim(),
@@ -1159,8 +1161,8 @@ async function cargarDatos(){
    6. CONSTRUCCIÓN DEL LAYOUT (todos los módulos)
    --------------------------------------------------------------- */
 function construirLayout(){
-  // Resumen Ejecutivo + Índice Operativo quedan FIJOS: se muestran siempre,
-  // sin importar qué pestaña/carpeta esté activa.
+  // Resumen Ejecutivo queda FIJO: se muestra siempre, sin importar qué
+  // pestaña/carpeta esté activa.
   document.getElementById('resumenFijo').innerHTML = `
     <section class="module tab-activa" data-tab="fijo-1">
       <div class="module-head">
@@ -1168,19 +1170,6 @@ function construirLayout(){
         <div class="module-sub">Indicadores clave del período filtrado, comparados contra el período anterior equivalente</div>
       </div>
       <div class="grid grid-kpi" id="kpiGrid"></div>
-    </section>
-    <section class="module tab-activa" data-tab="fijo-2">
-      <div class="module-head">
-        <div><span class="module-eyebrow">Resumen Operativo</span><h2>Índice Operativo</h2></div>
-        <div class="module-sub">Desempeño consolidado 0–100 (cumplimiento, efectividad, tiempo, novedades y ticket)</div>
-      </div>
-      <div class="grid grid-idx">
-        <div class="card" id="gaugeCard"></div>
-        <div class="card">
-          <h3 style="font-size:13px;font-weight:800;margin-bottom:14px;">Composición del índice</h3>
-          <div id="idxBreakdown"></div>
-        </div>
-      </div>
     </section>
   `;
 
@@ -1501,7 +1490,7 @@ function poblarFiltros(){
   poblarMultiSelect('msPunto', STATE.data.map(d=>d.punto), 'Todos');
   poblarMultiSelect('msEstado', STATE.data.map(d=>d.estado), 'Todos');
   poblarMultiSelect('msTipoVuelta', STATE.data.map(d=>d.tipoVuelta), 'Todos');
-  poblarMultiSelect('msCumplimiento', STATE.data.map(d=>d.cumple===true?'Cumple':(d.cumple===false?'No cumple':null)), 'Todos');
+  poblarMultiSelect('msCumplimiento', STATE.data.map(d=>d.tipoServicioEntrega), 'Todos');
   poblarMultiSelect('msTipoNegocio', STATE.data.map(d=>d.tipoNegocio), 'Todos');
 
   const fechasValidas = STATE.data.map(d=>d.fecha).filter(Boolean);
@@ -1559,10 +1548,7 @@ function coincideFiltros(fila, f){
   if(!coincideMultiple(fila.punto, f.punto)) return false;
   if(!coincideMultiple(fila.estado, f.estado)) return false;
   if(!coincideMultiple(fila.tipoVuelta, f.tipoVuelta)) return false;
-  if(f.cumplimiento && f.cumplimiento.length){
-    const etiquetaFila = fila.cumple===true ? 'Cumple' : (fila.cumple===false ? 'No cumple' : null);
-    if(!coincideMultiple(etiquetaFila, f.cumplimiento)) return false;
-  }
+  if(!coincideMultiple(fila.tipoServicioEntrega, f.cumplimiento)) return false;
   if(!coincideMultiple(fila.tipoNegocio, f.tipoNegocio)) return false;
   return true;
 }
@@ -1671,31 +1657,6 @@ function calcularVariacion(actual, anterior){
   return ((actual-anterior)/Math.abs(anterior))*100;
 }
 
-function calcularIndiceOperativo(m){
-  const scoreCumplimiento = m.cumplimiento ?? 0;
-  const scoreEfectividad = m.efectividad ?? 0;
-  let scoreTiempo = 0;
-  if(m.tiempoProm !== null){
-    scoreTiempo = Math.max(0, Math.min(100, 100 - ((m.tiempoProm - CONFIG.META_TIEMPO_MINUTOS) / CONFIG.META_TIEMPO_MINUTOS * 100)));
-  }
-  const pctNovedades = m.total ? (m.novedadesCount/m.total*100) : 0;
-  const scoreNovedades = Math.max(0, 100 - pctNovedades*4);
-  const ticketProm = calcularTicketPromedio(STATE.promo, {});
-  const ticketActual = calcularTicketPromedio(STATE.promo, leerFiltrosActuales());
-  let scoreTicket = 60;
-  if(ticketProm && ticketActual){
-    scoreTicket = Math.max(0, Math.min(100, 50 + ((ticketActual-ticketProm)/ticketProm*100)));
-  }
-  const indice = (scoreCumplimiento*0.30 + scoreEfectividad*0.25 + scoreTiempo*0.20 + scoreNovedades*0.15 + scoreTicket*0.10);
-  return {
-    total: Math.round(Math.max(0,Math.min(100,indice))),
-    partes: {
-      cumplimiento: Math.round(scoreCumplimiento), efectividad: Math.round(scoreEfectividad),
-      tiempo: Math.round(scoreTiempo), novedades: Math.round(scoreNovedades), ticket: Math.round(scoreTicket)
-    }
-  };
-}
-
 function agregarPor(filas, campo){
   const grupos = new Map();
   filas.forEach(f=>{
@@ -1762,75 +1723,6 @@ function renderKPIs(){
         ${deltaHtml}
       </div>`;
   }).join('');
-}
-
-/* ---------------------------------------------------------------
-   10. RENDER — MÓDULO 2: ÍNDICE OPERATIVO (GAUGE)
-   --------------------------------------------------------------- */
-function dibujarGauge(score){
-  const cx=150, cy=150, r=110;
-  const anguloInicio = 180, anguloFin = 0;
-  const anguloScore = 180 - (score/100*180);
-  const rad = (deg)=> (deg*Math.PI/180);
-  const puntoArco = (angDeg, radio)=>{
-    const rad2 = angDeg*Math.PI/180;
-    return [cx - radio*Math.cos(rad2), cy - radio*Math.sin(rad2)];
-  };
-  const [nx, ny] = puntoArco(anguloScore, r-18);
-  const color = score >= 70 ? 'var(--success)' : (score >= 40 ? 'var(--warning)' : 'var(--danger)');
-
-  const zonas = [
-    {desde:180, hasta:180-72, color:'var(--danger)'},
-    {desde:180-72, hasta:180-144, color:'var(--warning)'},
-    {desde:180-144, hasta:0, color:'var(--success)'}
-  ];
-  const arcos = zonas.map(z=>{
-    const [x1,y1] = puntoArco(z.desde, r);
-    const [x2,y2] = puntoArco(z.hasta, r);
-    const largo = (z.desde - z.hasta) > 180 ? 1 : 0;
-    return `<path d="M ${x1} ${y1} A ${r} ${r} 0 ${largo} 1 ${x2} ${y2}" stroke="${z.color}" stroke-width="20" fill="none" stroke-linecap="butt" opacity="0.85"/>`;
-  }).join('');
-
-  return `
-  <svg viewBox="0 0 300 175" style="width:100%; max-width:320px; overflow:visible;">
-    ${arcos}
-    <line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="var(--text)" stroke-width="4" stroke-linecap="round"/>
-    <circle cx="${cx}" cy="${cy}" r="8" fill="var(--text)"/>
-  </svg>`;
-}
-
-function renderIndiceOperativo(){
-  const m = calcularMetricas(STATE.filtered);
-  const idx = calcularIndiceOperativo(m);
-  const nivel = idx.total >= 70 ? "Desempeño sólido" : (idx.total >= 40 ? "Desempeño con oportunidades" : "Desempeño crítico");
-
-  document.getElementById('gaugeCard').innerHTML = `
-    <div class="gauge-wrap">
-      ${dibujarGauge(idx.total)}
-      <div class="gauge-score num">${idx.total}<span style="font-size:16px;color:var(--text-tertiary);">/100</span></div>
-      <div class="gauge-caption">${nivel}</div>
-      <div class="gauge-legend">
-        <span><span class="dot red"></span> 0–40</span>
-        <span><span class="dot yellow"></span> 40–70</span>
-        <span><span class="dot green"></span> 70–100</span>
-      </div>
-    </div>`;
-
-  const partes = [
-    {n:"Cumplimiento", v:idx.partes.cumplimiento, peso:"30%"},
-    {n:"Efectividad", v:idx.partes.efectividad, peso:"25%"},
-    {n:"Tiempo de entrega", v:idx.partes.tiempo, peso:"20%"},
-    {n:"Control de novedades", v:idx.partes.novedades, peso:"15%"},
-    {n:"Ticket promedio", v:idx.partes.ticket, peso:"10%"}
-  ];
-  document.getElementById('idxBreakdown').innerHTML = partes.map(p=>`
-    <div style="margin-bottom:16px;">
-      <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px;">
-        <span style="font-weight:600;">${p.n} <span style="color:var(--text-tertiary); font-weight:500;">· peso ${p.peso}</span></span>
-        <span class="num" style="font-weight:700;">${p.v}/100</span>
-      </div>
-      <div class="rank-bar-track"><div class="rank-bar-fill" style="width:${p.v}%;"></div></div>
-    </div>`).join('');
 }
 
 /* ---------------------------------------------------------------
@@ -2679,7 +2571,6 @@ function inicializarTema(){
 // mantener dos listas de módulos sincronizadas a mano).
 const MODULOS_CONFIG = [
   { id:1,  corto:"Resumen ejecutivo",       nombre:"Resumen Ejecutivo",                    fn:renderKPIs },
-  { id:2,  corto:"Índice operativo",        nombre:"Índice Operativo",                     fn:renderIndiceOperativo },
   { id:3,  corto:"Comportamiento",          nombre:"Comportamiento Operativo",             fn:renderComportamiento },
   { id:4,  corto:"Cumplimiento",            nombre:"Cumplimiento",                         fn:renderCumplimiento },
   { id:5,  corto:"Productividad",           nombre:"Productividad por Franja",             fn:renderFranja },
@@ -2693,10 +2584,10 @@ const MODULOS_CONFIG = [
   { id:13, corto:"Tabla operativa",         nombre:"Tabla Operativa",                      fn:renderTablaOperativa }
 ];
 
-// Los ids usados aquí ("fijo-1"/"fijo-2") son los del Resumen Ejecutivo e
-// Índice Operativo, que ya no viven dentro de #mainContent: están fijos en
-// #resumenFijo y se renderizan siempre, sin pasar por el sistema de pestañas.
-const IDS_FIJOS = [1, 2];
+// El id usado aquí ("fijo-1") es el del Resumen Ejecutivo, que ya no vive
+// dentro de #mainContent: está fijo en #resumenFijo y se renderiza siempre,
+// sin pasar por el sistema de pestañas.
+const IDS_FIJOS = [1];
 
 // Agrupación de los módulos restantes en carpetas para la navegación lateral.
 const CARPETAS_CONFIG = [
