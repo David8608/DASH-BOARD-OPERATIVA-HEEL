@@ -1180,12 +1180,17 @@ function construirLayout(){
     <!-- MÓDULO 1: COMPORTAMIENTO OPERATIVO -->
     <section class="module" data-tab="1">
       <div class="module-head">
-        <div><span class="module-eyebrow">Informe Operativo</span><h2>Comportamiento Operativo</h2></div>
+        <div><span class="module-eyebrow">Volumen</span><h2>Comportamiento Operativo</h2></div>
         <div class="module-sub">Volumen de servicios en el tiempo y fluctuación</div>
       </div>
       <div class="grid grid-2">
         <div class="card"><h3 class="mini-title">Servicios por día</h3><div class="chart-box"><canvas id="chartPorDia"></canvas></div></div>
         <div class="card"><h3 class="mini-title">Servicios por mes</h3><div class="chart-box"><canvas id="chartPorMes"></canvas></div></div>
+      </div>
+      <div class="grid grid-kpi" style="margin-top:20px;" id="kpiVolumenGrid"></div>
+      <div class="grid grid-2" style="margin-top:20px;">
+        <div class="card"><h3 class="mini-title">Top 10 puntos con más cierres (con novedad)</h3><div id="rankPuntosCierres"></div></div>
+        <div class="card"><h3 class="mini-title">Top 10 novedades más frecuentes</h3><div id="rankNovedadesFrecuentes"></div></div>
       </div>
       <div class="grid grid-2" style="margin-top:20px;">
         <div class="card">
@@ -1201,7 +1206,7 @@ function construirLayout(){
     <!-- MÓDULO 2: CUMPLIMIENTO -->
     <section class="module" data-tab="2">
       <div class="module-head">
-        <div><span class="module-eyebrow">Informe Operativo</span><h2>Cumplimiento</h2></div>
+        <div><span class="module-eyebrow">Volumen</span><h2>Cumplimiento</h2></div>
         <div class="module-sub">Semáforo: 🟢 ≥95%&nbsp;&nbsp;🟡 85–95%&nbsp;&nbsp;🔴 &lt;85%</div>
       </div>
       <div class="grid grid-2">
@@ -1213,7 +1218,7 @@ function construirLayout(){
     <!-- MÓDULO 3: PRODUCTIVIDAD -->
     <section class="module" data-tab="3">
       <div class="module-head">
-        <div><span class="module-eyebrow">Informe Operativo</span><h2>Productividad por Franja Horaria</h2></div>
+        <div><span class="module-eyebrow">Volumen</span><h2>Productividad por Franja Horaria</h2></div>
         <div class="module-sub">Distribución de la operación a lo largo del día</div>
       </div>
       <div class="card"><div class="table-scroll" id="tablaFranja"></div></div>
@@ -1882,6 +1887,37 @@ function renderComportamiento(){
     data:{ labels:diasOrdenados.map(d=>d.slice(5)), datasets:[{ label:'Media móvil 7 días', data:tendenciaValores, borderColor:colores.accent, backgroundColor:'transparent', tension:.4, pointRadius:0, borderWidth:2.5 }] },
     options: opcionesBaseChart(colores, {plugins:{legend:{display:false}}})
   });
+
+  // KPIs de volumen: efectividad, cumplimiento y cerrados con novedad del
+  // período filtrado (complementan los gráficos de servicios por día/mes).
+  const metricasVolumen = calcularMetricas(filas);
+  const tarjetasVolumen = [
+    { label:"Efectividad", valor:formatoPct(metricasVolumen.efectividad), icon:"📈", color:"success" },
+    { label:"Cumplimiento", valor:formatoPct(metricasVolumen.cumplimiento), icon:"🎯", color:"info" },
+    { label:"Cerrados con novedad", valor:formatoNumero(metricasVolumen.cerradosNovedad), icon:"⚠️", color:"warning" }
+  ];
+  const elKpiVolumen = document.getElementById('kpiVolumenGrid');
+  if(elKpiVolumen){
+    elKpiVolumen.innerHTML = tarjetasVolumen.map(t=>`
+      <div class="card kpi-card">
+        <div class="kpi-top"><span class="kpi-label">${t.label}</span><div class="kpi-icon" style="background:var(--${t.color}-bg); color:var(--${t.color});">${t.icon}</div></div>
+        <div class="kpi-value">${t.valor}</div>
+      </div>`).join('');
+  }
+
+  // Top 10 puntos con más servicios cerrados con novedad
+  const topPuntosCierres = agregarPor(filas, 'punto').filter(a=>a.cerradosNovedad>0)
+    .sort((a,b)=>b.cerradosNovedad-a.cerradosNovedad).slice(0,10)
+    .map(a=>({nombre:a.nombre, valor:a.cerradosNovedad}));
+  const elRankPuntosCierres = document.getElementById('rankPuntosCierres');
+  if(elRankPuntosCierres) elRankPuntosCierres.innerHTML = listaRankingHTML(topPuntosCierres, 10);
+
+  // Top 10 novedades más frecuentes
+  const filasConNovedad = filas.filter(f=>esNovedadValida(f.novedad));
+  const topNovedadesFrecuentes = agregarPor(filasConNovedad, 'novedad').sort((a,b)=>b.total-a.total).slice(0,10)
+    .map(a=>({nombre:a.nombre, valor:a.total}));
+  const elRankNovedadesFrecuentes = document.getElementById('rankNovedadesFrecuentes');
+  if(elRankNovedadesFrecuentes) elRankNovedadesFrecuentes.innerHTML = listaRankingHTML(topNovedadesFrecuentes, 10);
 
   // Tiempo promedio por punto de venta
   const porPuntoTiempo = agregarPor(filas, 'punto').filter(a=>a.tiempoProm!==null).sort((a,b)=>b.tiempoProm-a.tiempoProm);
@@ -2591,7 +2627,7 @@ const IDS_FIJOS = [1];
 
 // Agrupación de los módulos restantes en carpetas para la navegación lateral.
 const CARPETAS_CONFIG = [
-  { nombre:"Informe Operativo",   icono:"📁", modulos:[3,4,5] },
+  { nombre:"Volumen",              icono:"📁", modulos:[3,4,5] },
   { nombre:"Novedades",           icono:"📁", modulos:[6] },
   { nombre:"Financiero",          icono:"📁", modulos:[8] },
   { nombre:"Riesgo y Alertas",    icono:"📁", modulos:[7,9,10,11] },
