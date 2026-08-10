@@ -893,7 +893,6 @@ function normalizarFilasData(headers, filasCrudas){
     tiempo: buscarColumnaPorNombre(headers, ["tiempo entrega","tiempo_entrega","tiempo de entrega","tiempo promedio","tiempo (min)","tiempo"]),
     tipoNegocio: buscarColumnaPorNombre(headers, ["tipo_negocio","tipo negocio","tipo de negocio"]),
     tipoVuelta: buscarColumnaPorNombre(headers, ["tipo_vuelta","tipo vuelta","tipo de vuelta"]),
-    responsableNovedad: buscarColumnaPorNombre(headers, ["responsable de novedad","responsable_novedad","responsable novedad"]),
     mesData: buscarColumnaPorNombre(headers, ["mes data","mes_data"]),
   };
   // Columnas garantizadas por posición según especificación del proyecto (se resuelven
@@ -916,7 +915,6 @@ function normalizarFilasData(headers, filasCrudas){
   idx.motivoIncumplimiento = letraAIndice("AL");
   idx.responsableIncumplimiento = letraAIndice("AM");
   idx.tipoVuelta = idx.tipoVuelta !== -1 ? idx.tipoVuelta : letraAIndice("V");
-  idx.responsableNovedad = idx.responsableNovedad !== -1 ? idx.responsableNovedad : letraAIndice("AP");
 
   // Contadores de diagnóstico (se exponen en la validación de consola)
   let totalFilas = 0, sinFechaEntrega = 0, recuperadasPorFechaCreacion = 0, sinFechaAlguna = 0;
@@ -943,6 +941,15 @@ function normalizarFilasData(headers, filasCrudas){
     const lon = parseCoordenada(get(idx.lon), true);
     const tiempo = parseDuracionMinutos(get(idx.tiempo));
 
+    // La columna AM (RESPONSABLE) trae normalmente el responsable real de la
+    // novedad (CALL, CLIENTE, HEEL, QUICK, FACTOR EXTERNO, DEPOSITO, SIN
+    // SEGUIMIENTO DIARIO...), pero en algunas filas trae en su lugar un tipo
+    // de servicio de entrega (NEXT DAY / SAME DAY). Esos valores no son un
+    // responsable: se reclasifican hacia "tipo de servicio de entrega".
+    const responsableCrudo = String(get(idx.responsableIncumplimiento) || "").trim();
+    const esTipoServicioEnResponsable = ['next day','same day'].includes(normalizarTexto(responsableCrudo));
+    const tipoServicioBase = String(get(idx.cumplimiento) || "").trim();
+
     filas.push({
       fecha, fechaTexto: fecha ? formatoFecha(fecha) + (fechaEsAproximada ? " (fecha de creación)" : "") : "",
       fechaEsAproximada,
@@ -956,8 +963,8 @@ function normalizarFilasData(headers, filasCrudas){
       tiempo,
       franja: String(get(idx.franja) || "").trim(),
       tipoNegocio: String(get(idx.tipoNegocio) || "").trim(),
-      tipoServicioEntrega: String(get(idx.cumplimiento) || "").trim(),
-      responsableNovedad: String(get(idx.responsableNovedad) || "").trim(),
+      tipoServicioEntrega: esTipoServicioEnResponsable ? responsableCrudo : tipoServicioBase,
+      responsableNovedad: esTipoServicioEnResponsable ? "" : responsableCrudo,
       tipoVuelta: String(get(idx.tipoVuelta) || "").trim(),
       motivoIncumplimiento: String(get(idx.motivoIncumplimiento) || "").trim(),
       responsableIncumplimiento: String(get(idx.responsableIncumplimiento) || "").trim(),
@@ -1251,9 +1258,9 @@ function construirLayout(){
       </div>
       <div class="grid grid-2" style="margin-top:20px;">
         <div class="card">
-          <h3 class="mini-title">Fluctuación mensual</h3>
-          <div class="module-sub" style="margin-bottom:10px;">% de variación de servicios respecto al mes anterior</div>
-          <div class="chart-box"><canvas id="chartFluctuacion"></canvas></div>
+          <h3 class="mini-title">Entregados vs. cerrados con novedad</h3>
+          <div class="module-sub" style="margin-bottom:10px;">Cantidades absolutas del período filtrado</div>
+          <div class="chart-box"><canvas id="chartEntregadosVsNovedadDetalle"></canvas></div>
         </div>
         <div class="card"><h3 class="mini-title">Tendencia (media móvil 7 días)</h3><div class="chart-box"><canvas id="chartTendencia"></canvas></div></div>
       </div>
@@ -1285,19 +1292,19 @@ function construirLayout(){
     <section class="module" data-tab="4">
       <div class="module-head">
         <div><span class="module-eyebrow">Novedades</span><h2>Novedades</h2></div>
-        <div class="module-sub">Principales causas, y comparativo entre puntos de venta</div>
+        <div class="module-sub">Tipos de novedad, por punto de venta y por ciudad</div>
       </div>
-      <div class="card"><h3 class="mini-title">Top novedades</h3><div id="rankNovedades"></div></div>
+      <div class="card"><h3 class="mini-title">Top novedades (tipos de novedad)</h3><div id="rankNovedades"></div></div>
       <div class="grid grid-2" style="margin-top:20px;">
         <div class="card">
-          <h3 class="mini-title">Comparativo entre puntos (servicios totales)</h3>
-          <div class="module-sub" style="margin-bottom:10px;">Si seleccionas 2 o más puntos en el filtro, se comparan esos; si no, se muestran los 10 de mayor volumen</div>
-          <div class="chart-box tall"><canvas id="chartComparativoPuntos"></canvas></div>
-        </div>
-        <div class="card">
-          <h3 class="mini-title">Novedades por punto</h3>
+          <h3 class="mini-title">Novedades por punto de venta</h3>
           <div class="module-sub" style="margin-bottom:10px;">Cantidad de novedades registradas por cada punto de venta</div>
           <div class="chart-box tall"><canvas id="chartNovPunto"></canvas></div>
+        </div>
+        <div class="card">
+          <h3 class="mini-title">Novedades por ciudad</h3>
+          <div class="module-sub" style="margin-bottom:10px;">Cantidad de novedades registradas por cada ciudad</div>
+          <div class="chart-box tall"><canvas id="chartNovCiudad"></canvas></div>
         </div>
       </div>
     </section>
@@ -1951,42 +1958,18 @@ function renderComportamientoDetallado(){
     });
   }
 
-  // Fluctuación mensual: % de variación de servicios respecto al mes anterior.
-  if(comparativa){
-    const datasetsFluctuacion = comparativa.valores.map((valor, i)=>{
-      const subset = filas.filter(x=>x[comparativa.campo] === valor);
-      const mapaSubset = new Map();
-      subset.forEach(x=>{ if(x.fecha){ const k = `${x.fecha.getFullYear()}-${String(x.fecha.getMonth()+1).padStart(2,'0')}`; mapaSubset.set(k, (mapaSubset.get(k)||0)+1); } });
-      const variaciones = mesesOrdenados.map((m, idx)=>{
-        if(idx === 0) return null;
-        const actual = mapaSubset.get(m) || 0;
-        const anterior = mapaSubset.get(mesesOrdenados[idx-1]) || 0;
-        return anterior ? Math.round(((actual-anterior)/anterior)*1000)/10 : null;
-      });
-      return { label: valor, data: variaciones, borderColor: PALETA_COMPARATIVA[i % PALETA_COMPARATIVA.length], backgroundColor: PALETA_COMPARATIVA[i % PALETA_COMPARATIVA.length], tension:.3, borderWidth:2.5, type:'line' };
-    });
-    crearOActualizarChart('chartFluctuacion', {
-      type:'line',
-      data:{ labels:mesesOrdenados, datasets:datasetsFluctuacion },
-      options: opcionesBaseChart(colores, {plugins:{legend:{display:true}}})
-    });
-  } else {
-    const variaciones = mesesOrdenados.map((m, idx)=>{
-      if(idx === 0) return null;
-      const actual = porMes.get(m) || 0;
-      const anterior = porMes.get(mesesOrdenados[idx-1]) || 0;
-      return anterior ? Math.round(((actual-anterior)/anterior)*1000)/10 : null;
-    });
-    crearOActualizarChart('chartFluctuacion', {
-      type:'bar',
-      data:{ labels:mesesOrdenados, datasets:[{
-        label:'Variación % vs. mes anterior', data:variaciones,
-        backgroundColor: variaciones.map(v => v===null ? colores.grid : (v>=0 ? colores.success : colores.danger)),
-        borderRadius:4
-      }] },
-      options: opcionesBaseChart(colores, {plugins:{legend:{display:false}}})
-    });
-  }
+  // Entregados vs. cerrados con novedad (cantidades absolutas, mismo criterio
+  // exacto que el gráfico principal de la carpeta Volumen).
+  const entregadosDetalle = filas.filter(f=>esEstadoEntregado(f.estado)).length;
+  const cerradosNovedadDetalle = filas.filter(f=>esEstadoCerradoConNovedad(f.estado)).length;
+  crearOActualizarChart('chartEntregadosVsNovedadDetalle', {
+    type:'bar',
+    data:{ labels:['Entregados','Cerrados con novedad'], datasets:[{
+      data:[entregadosDetalle, cerradosNovedadDetalle], backgroundColor:[colores.success, colores.danger], borderRadius:6, barThickness:56
+    }] },
+    plugins:[pluginEtiquetasValor],
+    options: opcionesBaseChart(colores, { plugins:{ legend:{display:false} }, layout:{padding:{top:24}} })
+  });
 
   // Tendencia: media móvil de 7 días sobre volumen diario
   const ventana = 7;
@@ -2174,29 +2157,20 @@ function renderNovedades(){
 
   const colores = estiloEjes();
 
-  // Comparativo entre puntos: si hay 2+ puntos seleccionados en el filtro, se
-  // comparan exactamente esos; si no, se muestran los 10 de mayor volumen
-  // total (todos los servicios, no solo los que tienen novedad).
-  const comparativa = obtenerDimensionComparativa();
-  let puntosComparar;
-  if(comparativa && comparativa.campo === 'punto'){
-    puntosComparar = agregarPor(STATE.filtered.filter(f=>comparativa.valores.includes(f.punto)), 'punto')
-      .sort((a,b)=>b.total-a.total);
-  } else {
-    puntosComparar = agregarPor(STATE.filtered, 'punto').sort((a,b)=>b.total-a.total).slice(0,10);
-  }
-  crearOActualizarChart('chartComparativoPuntos', {
-    type:'bar',
-    data:{ labels:puntosComparar.map(p=>p.nombre), datasets:[{ label:'Servicios totales', data:puntosComparar.map(p=>p.total), backgroundColor:colores.accent, borderRadius:4 }] },
-    options: opcionesBaseChart(colores, {indexAxis:'y', plugins:{legend:{display:false}}})
-  });
-
   // Novedades por punto: cantidad de novedades (no el total de servicios) por
   // cada punto de venta, para identificar dónde se concentran los problemas.
   const porPunto = agregarPor(filas, 'punto').sort((a,b)=>b.total-a.total).slice(0,10);
   crearOActualizarChart('chartNovPunto', {
     type:'bar',
     data:{ labels:porPunto.map(p=>p.nombre), datasets:[{ label:'Novedades', data:porPunto.map(p=>p.total), backgroundColor:colores.danger, borderRadius:4 }] },
+    options: opcionesBaseChart(colores, {indexAxis:'y', plugins:{legend:{display:false}}})
+  });
+
+  // Novedades por ciudad: mismo criterio, agrupado por ciudad.
+  const porCiudad = agregarPor(filas, 'ciudad').sort((a,b)=>b.total-a.total).slice(0,10);
+  crearOActualizarChart('chartNovCiudad', {
+    type:'bar',
+    data:{ labels:porCiudad.map(c=>c.nombre), datasets:[{ label:'Novedades', data:porCiudad.map(c=>c.total), backgroundColor:colores.warning, borderRadius:4 }] },
     options: opcionesBaseChart(colores, {indexAxis:'y', plugins:{legend:{display:false}}})
   });
 }
