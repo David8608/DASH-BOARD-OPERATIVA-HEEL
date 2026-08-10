@@ -818,6 +818,7 @@ const ESTADOS_DEMO = ["Entregado","Entregado","Entregado","Cerrado con novedad",
 const FRANJAS_DEMO = ["07:00 - 09:00","09:00 - 11:00","11:00 - 13:00","13:00 - 15:00","15:00 - 17:00","17:00 - 19:00"];
 const TIPOS_NEGOCIO_DEMO = ["PACIENTE","PACIENTE","VINCULADO","VINCULADO","ADMINISTRATIVO","CONSIGNACION"];
 const TIPOS_VUELTA_DEMO = ["DOMICILIO","DOMICILIO","DOMICILIO","ADMINISTRATIVO","CONSIGNACION"];
+const TIPOS_SERVICIO_ENTREGA_DEMO = ["SAME DAY","SAME DAY","SAME DAY","NEXT DAY"];
 const MOTIVOS_INCUMPLIMIENTO_DEMO = ["NOVEDAD CALL","HORA DE ALMUERZO","DEMORA CLIENTE","RUTA > 2 PEDIDOS","ALTO VOLUMEN PEDIDOS","NOVEDAD APP","ALTO TRAFICO","DEMORA ALISTAMIENTO PDV"];
 const RESPONSABLES_INCUMPLIMIENTO_DEMO = ["CALL","CLIENTE","HEEL","QUICK","FACTOR EXTERNO"];
 
@@ -848,7 +849,7 @@ function generarDatosDemo(cantidad = 9000){
       punto, responsable, estado,
       cumple, novedad, tiempo,
       franja, tipoNegocio, motivoIncumplimiento, responsableIncumplimiento, tipoVuelta,
-      tipoServicioEntrega: cumple ? "CUMPLE" : "NO CUMPLE",
+      tipoServicioEntrega: TIPOS_SERVICIO_ENTREGA_DEMO[Math.floor(Math.random()*TIPOS_SERVICIO_ENTREGA_DEMO.length)],
       responsableNovedad: cumple ? "" : RESPONSABLES_INCUMPLIMIENTO_DEMO[Math.floor(Math.random()*RESPONSABLES_INCUMPLIMIENTO_DEMO.length)],
       lat: ciudad.lat + jitterLat, lon: ciudad.lon + jitterLon
     });
@@ -882,6 +883,12 @@ function generarPromoDemo(){
    5. CARGA Y NORMALIZACIÓN DEL CSV (hoja DATA)
    --------------------------------------------------------------- */
 function normalizarFilasData(headers, filasCrudas){
+  // ASIGNACIÓN EXPLÍCITA Y OBLIGATORIA (regla del cliente: "no asumas que el
+  // nombre de una columna define su contenido"). Estas dos posiciones NUNCA
+  // se resuelven por nombre de encabezado, siempre por letra de columna fija:
+  const IDX_COL_AN = letraAIndice("AN"); // Tipo de servicio de entrega (ej. SAME DAY / NEXT DAY)
+  const IDX_COL_AP = letraAIndice("AP"); // Responsable de novedad (texto, nunca fecha)
+
   const idx = {
     fecha: buscarColumnaPorNombre(headers, ["fecha_entrega","fecha entrega","fecha de servicio","fecha servicio","fecha"]),
     fechaCreacion: buscarColumnaPorNombre(headers, ["fecha_creacion","fecha creacion","fecha creación"]),
@@ -941,14 +948,13 @@ function normalizarFilasData(headers, filasCrudas){
     const lon = parseCoordenada(get(idx.lon), true);
     const tiempo = parseDuracionMinutos(get(idx.tiempo));
 
-    // La columna AM (RESPONSABLE) trae normalmente el responsable real de la
-    // novedad (CALL, CLIENTE, HEEL, QUICK, FACTOR EXTERNO, DEPOSITO, SIN
-    // SEGUIMIENTO DIARIO...), pero en algunas filas trae en su lugar un tipo
-    // de servicio de entrega (NEXT DAY / SAME DAY). Esos valores no son un
-    // responsable: se reclasifican hacia "tipo de servicio de entrega".
-    const responsableCrudo = String(get(idx.responsableIncumplimiento) || "").trim();
-    const esTipoServicioEnResponsable = ['next day','same day'].includes(normalizarTexto(responsableCrudo));
-    const tipoServicioBase = String(get(idx.cumplimiento) || "").trim();
+    // ASIGNACIÓN EXPLÍCITA Y FIJA (sin detección automática por nombre), por
+    // instrucción directa: el nombre de la columna en el encabezado no
+    // garantiza su contenido real en este archivo.
+    //   Tipo de servicio de entrega → SIEMPRE columna AN (texto tal cual, ej. SAME DAY / NEXT DAY)
+    //   Responsable de novedad      → SIEMPRE columna AP (texto tal cual, nunca se interpreta como fecha)
+    const tipoServicioEntregaFijo = String(get(IDX_COL_AN) || "").trim();
+    const responsableNovedadFijo = String(get(IDX_COL_AP) || "").trim();
 
     filas.push({
       fecha, fechaTexto: fecha ? formatoFecha(fecha) + (fechaEsAproximada ? " (fecha de creación)" : "") : "",
@@ -963,8 +969,8 @@ function normalizarFilasData(headers, filasCrudas){
       tiempo,
       franja: String(get(idx.franja) || "").trim(),
       tipoNegocio: String(get(idx.tipoNegocio) || "").trim(),
-      tipoServicioEntrega: esTipoServicioEnResponsable ? responsableCrudo : tipoServicioBase,
-      responsableNovedad: esTipoServicioEnResponsable ? "" : responsableCrudo,
+      tipoServicioEntrega: tipoServicioEntregaFijo,
+      responsableNovedad: responsableNovedadFijo,
       tipoVuelta: String(get(idx.tipoVuelta) || "").trim(),
       motivoIncumplimiento: String(get(idx.motivoIncumplimiento) || "").trim(),
       responsableIncumplimiento: String(get(idx.responsableIncumplimiento) || "").trim(),
