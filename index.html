@@ -571,6 +571,39 @@ function normalizarTexto(txt){
     .toLowerCase().trim();
 }
 
+// Blindaje: algunas columnas fijas por posición (AL, AM, AN, AP) pueden
+// terminar apuntando, por corrimientos del archivo real, a una columna de
+// fecha en vez de a la categoría de texto esperada. En vez de mostrar esa
+// fecha como si fuera un "motivo" o "responsable", se detecta y se descarta
+// (se trata como dato ausente) para que nunca aparezca una fecha en un
+// gráfico de categorías.
+function pareceSerFecha(valor){
+  if(valor === null || valor === undefined || valor === "") return false;
+  const s = String(valor).trim();
+  if(/^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}/.test(s)) return true;      // 20/01/2026, 1-2-26...
+  if(/^\d{4}-\d{1,2}-\d{1,2}/.test(s)) return true;                   // 2026-01-20
+  if(/^Date\(\d{4}\s*,/.test(s)) return true;                         // formato gviz Date(2026,0,20)
+  return false;
+}
+
+// Imprime en la consola del navegador (F12 → Console) el encabezado real y
+// muestras de valores para cada columna fija clave (V, AD, AE, AJ, AK, AL,
+// AM, AN, AP), tal como llegan del CSV publicado. Esto permite confirmar de
+// un vistazo si la posición fija realmente corresponde a lo esperado, sin
+// tener que adivinar a partir de una copia distinta (vista de edición) del
+// mismo archivo.
+function diagnosticoColumnasFijas(headers, filasMuestra){
+  const letras = ['V','AD','AE','AJ','AK','AL','AM','AN','AO','AP'];
+  const filas = letras.map(letra=>{
+    const idx = letraAIndice(letra);
+    const encabezado = (idx>=0 && idx<headers.length) ? headers[idx] : '(fuera de rango)';
+    const muestras = filasMuestra.map(f => (f && idx<f.length) ? f[idx] : '').filter(v=>v!=="").join('  |  ');
+    return { Columna: letra, Índice: idx, 'Encabezado real en el CSV': encabezado || '(vacío)', 'Muestras reales': muestras || '(sin datos)' };
+  });
+  console.log('%c🔎 Diagnóstico de columnas fijas (V, AD, AE, AJ, AK, AL, AM, AN, AO, AP)', 'font-weight:bold;font-size:13px;color:#0F6CBD;');
+  console.table(filas);
+}
+
 // Busca el índice de una columna por lista de nombres candidatos (comparación normalizada)
 function buscarColumnaPorNombre(headers, candidatos){
   const normalizados = headers.map(normalizarTexto);
@@ -953,8 +986,15 @@ function normalizarFilasData(headers, filasCrudas){
     // garantiza su contenido real en este archivo.
     //   Tipo de servicio de entrega → SIEMPRE columna AN (texto tal cual, ej. SAME DAY / NEXT DAY)
     //   Responsable de novedad      → SIEMPRE columna AP (texto tal cual, nunca se interpreta como fecha)
-    const tipoServicioEntregaFijo = String(get(IDX_COL_AN) || "").trim();
-    const responsableNovedadFijo = String(get(IDX_COL_AP) || "").trim();
+    let tipoServicioEntregaFijo = String(get(IDX_COL_AN) || "").trim();
+    let responsableNovedadFijo = String(get(IDX_COL_AP) || "").trim();
+    if(pareceSerFecha(tipoServicioEntregaFijo)) tipoServicioEntregaFijo = "";
+    if(pareceSerFecha(responsableNovedadFijo)) responsableNovedadFijo = "";
+
+    let motivoIncumplimientoFijo = String(get(idx.motivoIncumplimiento) || "").trim();
+    let responsableIncumplimientoFijo = String(get(idx.responsableIncumplimiento) || "").trim();
+    if(pareceSerFecha(motivoIncumplimientoFijo)) motivoIncumplimientoFijo = "";
+    if(pareceSerFecha(responsableIncumplimientoFijo)) responsableIncumplimientoFijo = "";
 
     filas.push({
       fecha, fechaTexto: fecha ? formatoFecha(fecha) + (fechaEsAproximada ? " (fecha de creación)" : "") : "",
@@ -972,8 +1012,8 @@ function normalizarFilasData(headers, filasCrudas){
       tipoServicioEntrega: tipoServicioEntregaFijo,
       responsableNovedad: responsableNovedadFijo,
       tipoVuelta: String(get(idx.tipoVuelta) || "").trim(),
-      motivoIncumplimiento: String(get(idx.motivoIncumplimiento) || "").trim(),
-      responsableIncumplimiento: String(get(idx.responsableIncumplimiento) || "").trim(),
+      motivoIncumplimiento: motivoIncumplimientoFijo,
+      responsableIncumplimiento: responsableIncumplimientoFijo,
       lat, lon
     });
   }
@@ -1145,6 +1185,7 @@ async function cargarDatos(){
     console.log(`CSV DATA descargado: ${crudasData.length - 1} filas de datos (más encabezado)`);
     setLoaderProgress(45, "Procesando hoja DATA…");
     const headersData = crudasData[0];
+    diagnosticoColumnasFijas(headersData, crudasData.slice(1, 4));
 
     // Validación mínima: si no se reconoce ninguna columna clave, probablemente
     // se descargó el archivo equivocado (HTML de login, hoja vacía, etc.)
