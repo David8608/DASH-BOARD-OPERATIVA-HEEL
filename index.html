@@ -602,6 +602,28 @@ function diagnosticoColumnasFijas(headers, filasMuestra){
   });
   console.log('%c🔎 Diagnóstico de columnas fijas (V, AD, AE, AJ, AK, AL, AM, AN, AO, AP)', 'font-weight:bold;font-size:13px;color:#0F6CBD;');
   console.table(filas);
+
+  // Verificación crítica: confirmar que la columna de Cumplimiento (que
+  // alimenta el Resumen Ejecutivo y el Módulo de Cumplimiento) TODAVÍA se
+  // encuentra correctamente por nombre, ya que la hoja ha crecido y movido
+  // columnas más de una vez.
+  const idxCumplimiento = buscarColumnaPorNombre(headers, ["cumplimiento","cumple"]);
+  const letraCumplimiento = idxCumplimiento>=0 ? indiceALetra(idxCumplimiento) : '(NO ENCONTRADA)';
+  console.log(`%c🎯 Columna "Cumplimiento" (usada en Resumen Ejecutivo): encontrada en ${letraCumplimiento} (índice ${idxCumplimiento}) — encabezado: "${idxCumplimiento>=0?headers[idxCumplimiento]:'N/A'}"`, 'font-weight:bold;color:'+(idxCumplimiento>=0?'#0F9D58':'#D13438')+';');
+
+  console.log('%c📋 TODOS los encabezados del CSV con su índice (por si hay más columnas de las esperadas)', 'font-weight:bold;font-size:13px;color:#0F6CBD;');
+  console.table(headers.map((h,i)=>({ Índice:i, Columna:indiceALetra(i), Encabezado:h })));
+}
+
+// Convierte un índice de columna (base 0) a su letra (0->A, 26->AA, etc.)
+function indiceALetra(indice){
+  let n = indice + 1, letra = '';
+  while(n > 0){
+    const resto = (n - 1) % 26;
+    letra = String.fromCharCode(65 + resto) + letra;
+    n = Math.floor((n - 1) / 26);
+  }
+  return letra;
 }
 
 // Busca el índice de una columna por lista de nombres candidatos (comparación normalizada)
@@ -952,8 +974,15 @@ function normalizarFilasData(headers, filasCrudas){
   // "NOVEDAD CUMPLIMIENTO" y "RESPONSABLE" -categoría de causa raíz, ej. CALL/CLIENTE/
   // HEEL/QUICK/FACTOR EXTERNO- distintas del mensajero de la columna M). Se resuelven
   // por posición porque el encabezado "RESPONSABLE" se repite también en la columna M.
-  idx.motivoIncumplimiento = letraAIndice("AL");
-  idx.responsableIncumplimiento = letraAIndice("AM");
+  // Confirmado con el diagnóstico real del CSV en vivo (la hoja creció y las
+  // columnas se corrieron respecto a lo asumido originalmente):
+  //   AO = "NOVEDAD CUMPLIMIENTO" (motivo real del incumplimiento) — antes se
+  //        asumía incorrectamente en AL, que ahora es "CREACION" (fecha).
+  //   AP = "RESPONSABLE NOVEDAD" — misma columna que ya se usa para el filtro
+  //        "Responsable de novedad" (antes se asumía en AM, que ahora es
+  //        "ACEPTACION", una fecha).
+  idx.motivoIncumplimiento = letraAIndice("AO");
+  idx.responsableIncumplimiento = letraAIndice("AP");
   idx.tipoVuelta = idx.tipoVuelta !== -1 ? idx.tipoVuelta : letraAIndice("V");
 
   // Contadores de diagnóstico (se exponen en la validación de consola)
