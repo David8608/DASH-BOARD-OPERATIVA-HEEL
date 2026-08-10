@@ -183,6 +183,13 @@ header.topbar{
 .filters-vertical{display:flex; flex-direction:column; gap:var(--space-3);}
 .filters-vertical .field select, .filters-vertical .field input{width:100%;}
 .filters-actions-vertical{display:flex; gap:var(--space-2); margin-top:var(--space-2);}
+.date-presets{display:flex; flex-wrap:wrap; gap:5px;}
+.date-presets button{
+  border:1px solid var(--border-strong); background:var(--card); color:var(--text-secondary);
+  padding:5px 9px; border-radius:14px; font-size:11px; font-weight:700;
+}
+.date-presets button:hover{border-color:var(--accent); color:var(--accent);}
+.date-presets button.active{background:var(--accent); border-color:var(--accent); color:#fff;}
 
 /* ---------- Selección múltiple (filtros comparativos) ---------- */
 .multiselect{position:relative;}
@@ -426,6 +433,20 @@ footer.app-footer{text-align:center; padding:var(--space-8) 0; font-size:12px; c
       <div class="filters-vertical">
         <div class="field"><label>Fecha inicial</label><input type="date" id="fFechaIni"></div>
         <div class="field"><label>Fecha final</label><input type="date" id="fFechaFin"></div>
+        <div class="field">
+          <label>Rango rápido</label>
+          <div class="date-presets" id="datePresets">
+            <button type="button" data-preset="hoy">Hoy</button>
+            <button type="button" data-preset="ayer">Ayer</button>
+            <button type="button" data-preset="7d">Últ. 7 días</button>
+            <button type="button" data-preset="15d">Últ. 15 días</button>
+            <button type="button" data-preset="30d">Últ. 30 días</button>
+            <button type="button" data-preset="mesActual">Mes actual</button>
+            <button type="button" data-preset="mesAnterior">Mes anterior</button>
+            <button type="button" data-preset="anioActual">Año actual</button>
+            <button type="button" data-preset="todo">Todo</button>
+          </div>
+        </div>
         <div class="field">
           <label>Ciudad</label>
           <div class="multiselect" id="msCiudad">
@@ -1316,7 +1337,7 @@ function construirLayout(){
         </div>
         <div class="card">
           <h3 class="mini-title">Efectividad de la operación</h3>
-          <div class="module-sub" style="margin-bottom:10px;">Entregados ÷ (Entregados + Cerrados con novedad) × 100</div>
+          <div class="module-sub" style="margin-bottom:10px;">Entregados ÷ (Entregados + Cerrados con novedad) × 100 · Meta de cumplimiento: <b id="metaCumplimientoTexto">95%</b></div>
           <div class="chart-box tall"><canvas id="chartEfectividadDonut"></canvas></div>
         </div>
       </div>
@@ -2125,7 +2146,7 @@ function renderVolumenPrincipal(){
   });
 
   // Gráfico 4 — Ciudades más afectadas (solo CERRADO CON NOVEDAD, por ciudad)
-  const porCiudadAfectada = agregarPor(filasCerradasNovedad, 'ciudad').filter(c=>c.total>0).sort((a,b)=>b.total-a.total);
+  const porCiudadAfectada = agregarPor(filasCerradasNovedad, 'ciudad').filter(c=>c.total>0).sort((a,b)=>b.total-a.total).slice(0,10);
   crearOActualizarChart('chartCiudadesAfectadas', {
     type:'bar',
     data:{ labels:porCiudadAfectada.map(c=>c.nombre), datasets:[{ data:porCiudadAfectada.map(c=>c.total), backgroundColor:colores.danger, borderRadius:4 }] },
@@ -2146,6 +2167,8 @@ function renderVolumenPrincipal(){
   // Gráfico 6 — Efectividad = Entregados / (Entregados + Cerrados con novedad) × 100
   const denominador = entregados + cerradosNovedad;
   const efectividad = denominador ? (entregados/denominador*100) : null;
+  const elMeta = document.getElementById('metaCumplimientoTexto');
+  if(elMeta) elMeta.textContent = CONFIG.UMBRAL_CUMPLIMIENTO + '%';
   crearOActualizarChart('chartEfectividadDonut', {
     type:'doughnut',
     data:{ labels:['Entregados','Cerrados con novedad'], datasets:[{ data:[entregados, cerradosNovedad], backgroundColor:[colores.success, colores.danger], borderWidth:0 }] },
@@ -2288,9 +2311,13 @@ function renderPedidosSinCumplimiento(){
     options: opcionesBaseChart(colores, {indexAxis:'y', plugins:{legend:{display:false}}})
   });
 
-  const conResp = filas.filter(f=>esCausaValida(f.responsableIncumplimiento));
+  // Los responsables vacíos NO se descartan: se agrupan como "Sin responsable"
+  // para que la ausencia de dato sea visible, no invisible.
   const mapaResp = new Map();
-  conResp.forEach(f=>{ const k = f.responsableIncumplimiento; mapaResp.set(k, (mapaResp.get(k)||0)+1); });
+  filas.forEach(f=>{
+    const k = esNovedadValida(f.responsableIncumplimiento) ? f.responsableIncumplimiento : 'Sin responsable';
+    mapaResp.set(k, (mapaResp.get(k)||0)+1);
+  });
   const responsablesOrdenados = [...mapaResp.entries()].sort((a,b)=>b[1]-a[1]);
   crearOActualizarChart('chartResponsableIncumplimiento', {
     type:'bar',
@@ -2325,14 +2352,21 @@ function renderTicketPromedio(){
       porMes.get(key).push(p.ticket);
     }
   });
-  const mesesOrdenados = [...porMes.keys()].sort();
   const colores = estiloEjes();
+  // Siempre se muestran los 12 meses del año (Enero–Diciembre), con hueco en
+  // los meses sin datos, para poder ver de un vistazo en qué mes estamos y
+  // qué tan avanzado va el año — no solo los meses que ya tienen información.
+  const etiquetasMeses12 = MESES_PROMO.map(m => m.nombre.charAt(0) + m.nombre.slice(1).toLowerCase());
+  const valoresMes12 = MESES_PROMO.map(m=>{
+    const key = `${CONFIG.ANIO_PROMO}-${String(m.num).padStart(2,'0')}`;
+    const arr = porMes.get(key);
+    return arr && arr.length ? Math.round(arr.reduce((a,b)=>a+b,0)/arr.length) : null;
+  });
   crearOActualizarChart('chartTicketMensual', {
     type:'line',
-    data:{ labels:mesesOrdenados, datasets:[{ label:'Ticket promedio', data:mesesOrdenados.map(m=>{
-      const arr = porMes.get(m); return arr.reduce((a,b)=>a+b,0)/arr.length;
-    }), borderColor:colores.accent, backgroundColor:'transparent', tension:.35, borderWidth:2.5 }] },
-    options: opcionesBaseChart(colores, {plugins:{legend:{display:false}}})
+    data:{ labels:etiquetasMeses12, datasets:[{ label:'Ticket promedio', data:valoresMes12, borderColor:colores.accent, backgroundColor:'transparent', tension:.35, borderWidth:2.5, spanGaps:true }] },
+    plugins:[pluginEtiquetasValor],
+    options: opcionesBaseChart(colores, {plugins:{legend:{display:false}}, layout:{padding:{top:20}}})
   });
 
   const porPunto = new Map();
@@ -2975,9 +3009,37 @@ function marcarUltimaActualizacion(){
   document.getElementById('horaActualizacion').textContent = `${fechaTexto}, ${horaTexto}`;
 }
 
+// Calcula fechaIni/fechaFin para cada preset y los aplica a los campos de fecha.
+function aplicarPresetFecha(tipo){
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  let ini = new Date(hoy), fin = new Date(hoy);
+
+  if(tipo === 'hoy'){ /* ini=fin=hoy */ }
+  else if(tipo === 'ayer'){ ini.setDate(ini.getDate()-1); fin.setDate(fin.getDate()-1); }
+  else if(tipo === '7d'){ ini.setDate(ini.getDate()-6); }
+  else if(tipo === '15d'){ ini.setDate(ini.getDate()-14); }
+  else if(tipo === '30d'){ ini.setDate(ini.getDate()-29); }
+  else if(tipo === 'mesActual'){ ini = new Date(hoy.getFullYear(), hoy.getMonth(), 1); fin = new Date(hoy.getFullYear(), hoy.getMonth()+1, 0); }
+  else if(tipo === 'mesAnterior'){ ini = new Date(hoy.getFullYear(), hoy.getMonth()-1, 1); fin = new Date(hoy.getFullYear(), hoy.getMonth(), 0); }
+  else if(tipo === 'anioActual'){ ini = new Date(hoy.getFullYear(), 0, 1); fin = new Date(hoy.getFullYear(), 11, 31); }
+  else if(tipo === 'todo'){
+    const fechasValidas = STATE.data.map(d=>d.fecha).filter(Boolean);
+    if(fechasValidas.length){ ini = new Date(Math.min(...fechasValidas)); fin = new Date(Math.max(...fechasValidas)); }
+  }
+
+  document.getElementById('fFechaIni').value = toInputDate(ini);
+  document.getElementById('fFechaFin').value = toInputDate(fin);
+  document.querySelectorAll('#datePresets button').forEach(b=>b.classList.toggle('active', b.dataset.preset===tipo));
+  aplicarFiltros();
+}
+
 function conectarEventos(){
   document.getElementById('btnAplicar').addEventListener('click', aplicarFiltros);
   document.getElementById('btnLimpiar').addEventListener('click', limpiarFiltros);
+  document.getElementById('datePresets').addEventListener('click', (e)=>{
+    const btn = e.target.closest('button[data-preset]');
+    if(btn) aplicarPresetFecha(btn.dataset.preset);
+  });
   document.getElementById('btnToggleSidebar').addEventListener('click', ()=>{
     document.getElementById('sidebar').classList.toggle('abierta');
   });
