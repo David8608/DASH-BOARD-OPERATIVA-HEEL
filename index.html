@@ -367,6 +367,8 @@ table.data-table tbody tr:hover{background:var(--card-alt);}
 
 .chart-box{position:relative; height:280px;}
 .chart-box.tall{height:340px;}
+.chart-scroll-wrap{height:340px; overflow-y:auto; overflow-x:hidden;}
+.chart-scroll-wrap canvas{width:100% !important;}
 
 .empty-note{font-size:12.5px; color:var(--text-tertiary); text-align:center; padding:var(--space-6);}
 
@@ -462,6 +464,13 @@ footer.app-footer{text-align:center; padding:var(--space-8) 0; font-size:12px; c
         <div class="field">
           <label>Tipo de negocio</label>
           <div class="multiselect" id="msTipoNegocio">
+            <button type="button" class="ms-btn">Todos</button>
+            <div class="ms-panel"></div>
+          </div>
+        </div>
+        <div class="field">
+          <label>Responsable de novedad</label>
+          <div class="multiselect" id="msResponsableNovedad">
             <button type="button" class="ms-btn">Todos</button>
             <div class="ms-panel"></div>
           </div>
@@ -840,6 +849,7 @@ function generarDatosDemo(cantidad = 9000){
       cumple, novedad, tiempo,
       franja, tipoNegocio, motivoIncumplimiento, responsableIncumplimiento, tipoVuelta,
       tipoServicioEntrega: cumple ? "CUMPLE" : "NO CUMPLE",
+      responsableNovedad: cumple ? "" : RESPONSABLES_INCUMPLIMIENTO_DEMO[Math.floor(Math.random()*RESPONSABLES_INCUMPLIMIENTO_DEMO.length)],
       lat: ciudad.lat + jitterLat, lon: ciudad.lon + jitterLon
     });
   }
@@ -883,6 +893,7 @@ function normalizarFilasData(headers, filasCrudas){
     tiempo: buscarColumnaPorNombre(headers, ["tiempo entrega","tiempo_entrega","tiempo de entrega","tiempo promedio","tiempo (min)","tiempo"]),
     tipoNegocio: buscarColumnaPorNombre(headers, ["tipo_negocio","tipo negocio","tipo de negocio"]),
     tipoVuelta: buscarColumnaPorNombre(headers, ["tipo_vuelta","tipo vuelta","tipo de vuelta"]),
+    responsableNovedad: buscarColumnaPorNombre(headers, ["responsable de novedad","responsable_novedad","responsable novedad"]),
     mesData: buscarColumnaPorNombre(headers, ["mes data","mes_data"]),
   };
   // Columnas garantizadas por posición según especificación del proyecto (se resuelven
@@ -905,6 +916,7 @@ function normalizarFilasData(headers, filasCrudas){
   idx.motivoIncumplimiento = letraAIndice("AL");
   idx.responsableIncumplimiento = letraAIndice("AM");
   idx.tipoVuelta = idx.tipoVuelta !== -1 ? idx.tipoVuelta : letraAIndice("V");
+  idx.responsableNovedad = idx.responsableNovedad !== -1 ? idx.responsableNovedad : letraAIndice("AP");
 
   // Contadores de diagnóstico (se exponen en la validación de consola)
   let totalFilas = 0, sinFechaEntrega = 0, recuperadasPorFechaCreacion = 0, sinFechaAlguna = 0;
@@ -945,6 +957,7 @@ function normalizarFilasData(headers, filasCrudas){
       franja: String(get(idx.franja) || "").trim(),
       tipoNegocio: String(get(idx.tipoNegocio) || "").trim(),
       tipoServicioEntrega: String(get(idx.cumplimiento) || "").trim(),
+      responsableNovedad: String(get(idx.responsableNovedad) || "").trim(),
       tipoVuelta: String(get(idx.tipoVuelta) || "").trim(),
       motivoIncumplimiento: String(get(idx.motivoIncumplimiento) || "").trim(),
       responsableIncumplimiento: String(get(idx.responsableIncumplimiento) || "").trim(),
@@ -1180,17 +1193,61 @@ function construirLayout(){
     <!-- MÓDULO 1: COMPORTAMIENTO OPERATIVO -->
     <section class="module" data-tab="1">
       <div class="module-head">
-        <div><span class="module-eyebrow">Volumen</span><h2>Comportamiento Operativo</h2></div>
-        <div class="module-sub">Volumen de servicios en el tiempo y fluctuación</div>
+        <div><span class="module-eyebrow">Volumen</span><h2>Volumen</h2></div>
+        <div class="module-sub">Cuántos servicios, cuántos entregados, cuántos con novedad, y dónde se concentran</div>
+      </div>
+
+      <!-- Fila 1 -->
+      <div class="grid grid-2">
+        <div class="card">
+          <h3 class="mini-title">Servicios realizados</h3>
+          <div class="chart-box"><canvas id="chartServiciosRealizados"></canvas></div>
+        </div>
+        <div class="card">
+          <h3 class="mini-title">Servicios por punto de venta</h3>
+          <div class="module-sub" style="margin-bottom:10px;">Ordenado de mayor a menor volumen</div>
+          <div class="chart-scroll-wrap" id="wrapServiciosPorPunto"><div id="innerServiciosPorPunto"><canvas id="chartServiciosPorPunto"></canvas></div></div>
+        </div>
+      </div>
+
+      <!-- Fila 2 -->
+      <div class="grid grid-2" style="margin-top:20px;">
+        <div class="card">
+          <h3 class="mini-title">Novedades que afectan la operación</h3>
+          <div class="module-sub" style="margin-bottom:10px;">Solo servicios cerrados con novedad, agrupados por tipo</div>
+          <div class="chart-box tall"><canvas id="chartNovedadesAfectan"></canvas></div>
+        </div>
+        <div class="card">
+          <h3 class="mini-title">Ciudades más afectadas</h3>
+          <div class="module-sub" style="margin-bottom:10px;">Cantidad de servicios cerrados con novedad por ciudad</div>
+          <div class="chart-box tall"><canvas id="chartCiudadesAfectadas"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Fila 3 -->
+      <div class="grid grid-2" style="margin-top:20px;">
+        <div class="card">
+          <h3 class="mini-title">Puntos de venta más afectados</h3>
+          <div class="module-sub" style="margin-bottom:10px;">Cantidad de servicios cerrados con novedad por punto</div>
+          <div class="chart-scroll-wrap" id="wrapPuntosAfectados"><div id="innerPuntosAfectados"><canvas id="chartPuntosAfectados"></canvas></div></div>
+        </div>
+        <div class="card">
+          <h3 class="mini-title">Efectividad de la operación</h3>
+          <div class="module-sub" style="margin-bottom:10px;">Entregados ÷ (Entregados + Cerrados con novedad) × 100</div>
+          <div class="chart-box tall"><canvas id="chartEfectividadDonut"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MÓDULO ADICIONAL: COMPORTAMIENTO DETALLADO (se conserva, no se elimina funcionalidad existente) -->
+    <section class="module" data-tab="14">
+      <div class="module-head">
+        <div><span class="module-eyebrow">Volumen</span><h2>Comportamiento Detallado</h2></div>
+        <div class="module-sub">Vista complementaria: tendencia diaria/mensual y tiempos por punto</div>
       </div>
       <div class="grid grid-2">
         <div class="card"><h3 class="mini-title">Servicios por día</h3><div class="chart-box"><canvas id="chartPorDia"></canvas></div></div>
         <div class="card"><h3 class="mini-title">Servicios por mes</h3><div class="chart-box"><canvas id="chartPorMes"></canvas></div></div>
-      </div>
-      <div class="grid grid-kpi" style="margin-top:20px;" id="kpiVolumenGrid"></div>
-      <div class="grid grid-2" style="margin-top:20px;">
-        <div class="card"><h3 class="mini-title">Top 10 puntos con más cierres (con novedad)</h3><div id="rankPuntosCierres"></div></div>
-        <div class="card"><h3 class="mini-title">Top 10 novedades más frecuentes</h3><div id="rankNovedadesFrecuentes"></div></div>
       </div>
       <div class="grid grid-2" style="margin-top:20px;">
         <div class="card">
@@ -1497,6 +1554,7 @@ function poblarFiltros(){
   poblarMultiSelect('msTipoVuelta', STATE.data.map(d=>d.tipoVuelta), 'Todos');
   poblarMultiSelect('msCumplimiento', STATE.data.map(d=>d.tipoServicioEntrega), 'Todos');
   poblarMultiSelect('msTipoNegocio', STATE.data.map(d=>d.tipoNegocio), 'Todos');
+  poblarMultiSelect('msResponsableNovedad', STATE.data.map(d=>d.responsableNovedad), 'Todos');
 
   const fechasValidas = STATE.data.map(d=>d.fecha).filter(Boolean);
   if(fechasValidas.length){
@@ -1525,7 +1583,8 @@ function leerFiltrosActuales(){
     estado: leerSeleccionMultiple('msEstado'),
     tipoVuelta: leerSeleccionMultiple('msTipoVuelta'),
     cumplimiento: leerSeleccionMultiple('msCumplimiento'),
-    tipoNegocio: leerSeleccionMultiple('msTipoNegocio')
+    tipoNegocio: leerSeleccionMultiple('msTipoNegocio'),
+    responsableNovedad: leerSeleccionMultiple('msResponsableNovedad')
   };
 }
 
@@ -1555,6 +1614,7 @@ function coincideFiltros(fila, f){
   if(!coincideMultiple(fila.tipoVuelta, f.tipoVuelta)) return false;
   if(!coincideMultiple(fila.tipoServicioEntrega, f.cumplimiento)) return false;
   if(!coincideMultiple(fila.tipoNegocio, f.tipoNegocio)) return false;
+  if(!coincideMultiple(fila.responsableNovedad, f.responsableNovedad)) return false;
   return true;
 }
 
@@ -1596,6 +1656,7 @@ function limpiarFiltros(){
   limpiarMultiSelect('msTipoVuelta', 'Todos');
   limpiarMultiSelect('msCumplimiento', 'Todos');
   limpiarMultiSelect('msTipoNegocio', 'Todos');
+  limpiarMultiSelect('msResponsableNovedad', 'Todos');
   const fechasValidas = STATE.data.map(d=>d.fecha).filter(Boolean);
   if(fechasValidas.length){
     document.getElementById('fFechaIni').value = toInputDate(new Date(Math.min(...fechasValidas)));
@@ -1769,6 +1830,61 @@ function opcionesBaseChart(colores, extra={}){
   }, extra);
 }
 
+// Plugin reutilizable: dibuja el valor exacto junto a cada barra (vertical u
+// horizontal), tal como pide la sección Volumen ("mostrar el número exacto
+// sobre cada barra"). No requiere librerías externas.
+const pluginEtiquetasValor = {
+  id: 'etiquetasValor',
+  afterDatasetsDraw(chart){
+    const { ctx } = chart;
+    const colores = estiloEjes();
+    chart.data.datasets.forEach((dataset, dsIndex)=>{
+      const meta = chart.getDatasetMeta(dsIndex);
+      if(meta.hidden) return;
+      meta.data.forEach((elemento, index)=>{
+        const valor = dataset.data[index];
+        if(valor === null || valor === undefined || isNaN(valor)) return;
+        ctx.save();
+        ctx.fillStyle = colores.text;
+        ctx.font = '700 11px Inter, sans-serif';
+        if(chart.options.indexAxis === 'y'){
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(formatoNumero(valor,0), elemento.x + 6, elemento.y);
+        } else {
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'bottom';
+          ctx.fillText(formatoNumero(valor,0), elemento.x, elemento.y - 4);
+        }
+        ctx.restore();
+      });
+    });
+  }
+};
+
+// Genera un plugin de texto centrado para gráficos de dona (ej. Efectividad).
+function crearPluginCentroDonut(tituloArriba, obtenerTextoPrincipal){
+  return {
+    id: 'centroDonut',
+    afterDraw(chart){
+      const { ctx, chartArea } = chart;
+      if(!chartArea) return;
+      const colores = estiloEjes();
+      const cx = (chartArea.left + chartArea.right)/2;
+      const cy = (chartArea.top + chartArea.bottom)/2;
+      ctx.save();
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = colores.text;
+      ctx.font = '800 15px "Inter", sans-serif';
+      ctx.fillText(tituloArriba, cx, cy - 16);
+      ctx.fillStyle = colores.accent;
+      ctx.font = '800 28px "JetBrains Mono", monospace';
+      ctx.fillText(obtenerTextoPrincipal(), cx, cy + 12);
+      ctx.restore();
+    }
+  };
+}
+
 /* ---------------------------------------------------------------
    12. RENDER — MÓDULO 3: COMPORTAMIENTO OPERATIVO
    --------------------------------------------------------------- */
@@ -1785,7 +1901,7 @@ function obtenerDimensionComparativa(){
   return null;
 }
 
-function renderComportamiento(){
+function renderComportamientoDetallado(){
   const colores = estiloEjes();
   const filas = STATE.filtered;
   const comparativa = obtenerDimensionComparativa();
@@ -1836,9 +1952,6 @@ function renderComportamiento(){
   }
 
   // Fluctuación mensual: % de variación de servicios respecto al mes anterior.
-  // Se usa un gráfico de barras con color según el signo (verde=sube, rojo=baja),
-  // que es mucho más claro para visualizar movimiento que combinar volumen con
-  // cumplimiento en el mismo eje.
   if(comparativa){
     const datasetsFluctuacion = comparativa.valores.map((valor, i)=>{
       const subset = filas.filter(x=>x[comparativa.campo] === valor);
@@ -1888,37 +2001,6 @@ function renderComportamiento(){
     options: opcionesBaseChart(colores, {plugins:{legend:{display:false}}})
   });
 
-  // KPIs de volumen: efectividad, cumplimiento y cerrados con novedad del
-  // período filtrado (complementan los gráficos de servicios por día/mes).
-  const metricasVolumen = calcularMetricas(filas);
-  const tarjetasVolumen = [
-    { label:"Efectividad", valor:formatoPct(metricasVolumen.efectividad), icon:"📈", color:"success" },
-    { label:"Cumplimiento", valor:formatoPct(metricasVolumen.cumplimiento), icon:"🎯", color:"info" },
-    { label:"Cerrados con novedad", valor:formatoNumero(metricasVolumen.cerradosNovedad), icon:"⚠️", color:"warning" }
-  ];
-  const elKpiVolumen = document.getElementById('kpiVolumenGrid');
-  if(elKpiVolumen){
-    elKpiVolumen.innerHTML = tarjetasVolumen.map(t=>`
-      <div class="card kpi-card">
-        <div class="kpi-top"><span class="kpi-label">${t.label}</span><div class="kpi-icon" style="background:var(--${t.color}-bg); color:var(--${t.color});">${t.icon}</div></div>
-        <div class="kpi-value">${t.valor}</div>
-      </div>`).join('');
-  }
-
-  // Top 10 puntos con más servicios cerrados con novedad
-  const topPuntosCierres = agregarPor(filas, 'punto').filter(a=>a.cerradosNovedad>0)
-    .sort((a,b)=>b.cerradosNovedad-a.cerradosNovedad).slice(0,10)
-    .map(a=>({nombre:a.nombre, valor:a.cerradosNovedad}));
-  const elRankPuntosCierres = document.getElementById('rankPuntosCierres');
-  if(elRankPuntosCierres) elRankPuntosCierres.innerHTML = listaRankingHTML(topPuntosCierres, 10);
-
-  // Top 10 novedades más frecuentes
-  const filasConNovedad = filas.filter(f=>esNovedadValida(f.novedad));
-  const topNovedadesFrecuentes = agregarPor(filasConNovedad, 'novedad').sort((a,b)=>b.total-a.total).slice(0,10)
-    .map(a=>({nombre:a.nombre, valor:a.total}));
-  const elRankNovedadesFrecuentes = document.getElementById('rankNovedadesFrecuentes');
-  if(elRankNovedadesFrecuentes) elRankNovedadesFrecuentes.innerHTML = listaRankingHTML(topNovedadesFrecuentes, 10);
-
   // Tiempo promedio por punto de venta
   const porPuntoTiempo = agregarPor(filas, 'punto').filter(a=>a.tiempoProm!==null).sort((a,b)=>b.tiempoProm-a.tiempoProm);
   const elTablaTiempoPunto = document.getElementById('tablaTiempoPorPunto');
@@ -1928,6 +2010,92 @@ function renderComportamiento(){
         ${porPuntoTiempo.map(a=>`<tr><td>${a.nombre}</td><td class="num">${formatoNumero(a.total)}</td><td class="num">${formatoNumero(a.tiempoProm,0)} min</td></tr>`).join('')}
       </tbody></table>` : `<div class="empty-note">Sin datos de tiempo para los filtros seleccionados.</div>`;
   }
+}
+
+/* ---------------------------------------------------------------
+   NUEVA SECCIÓN VOLUMEN — 6 gráficos ejecutivos exactamente como se
+   especificó: servicios realizados, por punto, novedades, ciudades
+   afectadas, puntos afectados y efectividad.
+   --------------------------------------------------------------- */
+
+// Reglas de cálculo exactas pedidas: coincidencia EXACTA de estado (no solo
+// "contiene"), normalizando mayúsculas/tildes/espacios.
+function esEstadoEntregado(estado){ return normalizarTexto(estado) === 'entregado'; }
+function esEstadoCerradoConNovedad(estado){ return normalizarTexto(estado) === 'cerrado con novedad'; }
+
+function ajustarAlturaScroll(idContenedorInterno, cantidadItems, alturaPorItem=30, alturaMinima=340){
+  const el = document.getElementById(idContenedorInterno);
+  if(el) el.style.height = Math.max(alturaMinima, cantidadItems*alturaPorItem) + 'px';
+}
+
+function renderVolumenPrincipal(){
+  const filas = STATE.filtered;
+  const colores = estiloEjes();
+
+  const entregados = filas.filter(f=>esEstadoEntregado(f.estado)).length;
+  const cerradosNovedad = filas.filter(f=>esEstadoCerradoConNovedad(f.estado)).length;
+  const filasCerradasNovedad = filas.filter(f=>esEstadoCerradoConNovedad(f.estado));
+
+  // Gráfico 1 — Servicios realizados (Entregados vs. Cerrados con novedad, cantidades absolutas)
+  crearOActualizarChart('chartServiciosRealizados', {
+    type:'bar',
+    data:{ labels:['Entregados','Cerrados con novedad'], datasets:[{
+      data:[entregados, cerradosNovedad], backgroundColor:[colores.success, colores.danger], borderRadius:6, barThickness:56
+    }] },
+    plugins:[pluginEtiquetasValor],
+    options: opcionesBaseChart(colores, { plugins:{ legend:{display:false} }, layout:{padding:{top:24}} })
+  });
+
+  // Gráfico 2 — Servicios por punto de venta (todos los estados, cantidades absolutas, desc)
+  const porPuntoTotal = agregarPor(filas, 'punto').sort((a,b)=>b.total-a.total);
+  ajustarAlturaScroll('innerServiciosPorPunto', porPuntoTotal.length, 30, 340);
+  crearOActualizarChart('chartServiciosPorPunto', {
+    type:'bar',
+    data:{ labels:porPuntoTotal.map(p=>p.nombre), datasets:[{ data:porPuntoTotal.map(p=>p.total), backgroundColor:colores.accent, borderRadius:4 }] },
+    plugins:[pluginEtiquetasValor],
+    options: opcionesBaseChart(colores, { indexAxis:'y', plugins:{legend:{display:false}}, layout:{padding:{right:46}} })
+  });
+
+  // Gráfico 3 — Novedades que afectan la operación (solo CERRADO CON NOVEDAD, por tipo)
+  const porNovedad = agregarPor(filasCerradasNovedad.filter(f=>esNovedadValida(f.novedad)), 'novedad').sort((a,b)=>b.total-a.total);
+  crearOActualizarChart('chartNovedadesAfectan', {
+    type:'bar',
+    data:{ labels:porNovedad.map(n=>n.nombre), datasets:[{ data:porNovedad.map(n=>n.total), backgroundColor:colores.warning, borderRadius:4 }] },
+    plugins:[pluginEtiquetasValor],
+    options: opcionesBaseChart(colores, { indexAxis:'y', plugins:{legend:{display:false}}, layout:{padding:{right:46}} })
+  });
+
+  // Gráfico 4 — Ciudades más afectadas (solo CERRADO CON NOVEDAD, por ciudad)
+  const porCiudadAfectada = agregarPor(filasCerradasNovedad, 'ciudad').filter(c=>c.total>0).sort((a,b)=>b.total-a.total);
+  crearOActualizarChart('chartCiudadesAfectadas', {
+    type:'bar',
+    data:{ labels:porCiudadAfectada.map(c=>c.nombre), datasets:[{ data:porCiudadAfectada.map(c=>c.total), backgroundColor:colores.danger, borderRadius:4 }] },
+    plugins:[pluginEtiquetasValor],
+    options: opcionesBaseChart(colores, { indexAxis:'y', plugins:{legend:{display:false}}, layout:{padding:{right:46}} })
+  });
+
+  // Gráfico 5 — Puntos de venta más afectados (solo CERRADO CON NOVEDAD, por punto)
+  const porPuntoAfectado = agregarPor(filasCerradasNovedad, 'punto').filter(p=>p.total>0).sort((a,b)=>b.total-a.total);
+  ajustarAlturaScroll('innerPuntosAfectados', porPuntoAfectado.length, 30, 340);
+  crearOActualizarChart('chartPuntosAfectados', {
+    type:'bar',
+    data:{ labels:porPuntoAfectado.map(p=>p.nombre), datasets:[{ data:porPuntoAfectado.map(p=>p.total), backgroundColor:colores.accentStrong, borderRadius:4 }] },
+    plugins:[pluginEtiquetasValor],
+    options: opcionesBaseChart(colores, { indexAxis:'y', plugins:{legend:{display:false}}, layout:{padding:{right:46}} })
+  });
+
+  // Gráfico 6 — Efectividad = Entregados / (Entregados + Cerrados con novedad) × 100
+  const denominador = entregados + cerradosNovedad;
+  const efectividad = denominador ? (entregados/denominador*100) : null;
+  crearOActualizarChart('chartEfectividadDonut', {
+    type:'doughnut',
+    data:{ labels:['Entregados','Cerrados con novedad'], datasets:[{ data:[entregados, cerradosNovedad], backgroundColor:[colores.success, colores.danger], borderWidth:0 }] },
+    plugins:[crearPluginCentroDonut('EFECTIVIDAD', ()=> efectividad!==null ? efectividad.toFixed(1)+'%' : 'N/D')],
+    options:{
+      responsive:true, maintainAspectRatio:false, cutout:'72%',
+      plugins:{ legend:{ position:'bottom', labels:{ color:colores.text, boxWidth:10, font:{size:11} } } }
+    }
+  });
 }
 
 /* ---------------------------------------------------------------
@@ -2607,7 +2775,7 @@ function inicializarTema(){
 // mantener dos listas de módulos sincronizadas a mano).
 const MODULOS_CONFIG = [
   { id:1,  corto:"Resumen ejecutivo",       nombre:"Resumen Ejecutivo",                    fn:renderKPIs },
-  { id:3,  corto:"Comportamiento",          nombre:"Comportamiento Operativo",             fn:renderComportamiento },
+  { id:3,  corto:"Volumen",                 nombre:"Volumen",                              fn:renderVolumenPrincipal },
   { id:4,  corto:"Cumplimiento",            nombre:"Cumplimiento",                         fn:renderCumplimiento },
   { id:5,  corto:"Productividad",           nombre:"Productividad por Franja",             fn:renderFranja },
   { id:6,  corto:"Novedades",               nombre:"Novedades",                            fn:renderNovedades },
@@ -2617,7 +2785,8 @@ const MODULOS_CONFIG = [
   { id:10, corto:"Centro de alertas",       nombre:"Centro de Alertas",                    fn:renderAlertas },
   { id:11, corto:"Insights del día",        nombre:"Insights del Día",                     fn:renderInsights },
   { id:12, corto:"Mapa nacional",           nombre:"Mapa Nacional",                        fn:renderMapa },
-  { id:13, corto:"Tabla operativa",         nombre:"Tabla Operativa",                      fn:renderTablaOperativa }
+  { id:13, corto:"Tabla operativa",         nombre:"Tabla Operativa",                      fn:renderTablaOperativa },
+  { id:14, corto:"Comportamiento detalle",  nombre:"Comportamiento Detallado",             fn:renderComportamientoDetallado }
 ];
 
 // El id usado aquí ("fijo-1") es el del Resumen Ejecutivo, que ya no vive
@@ -2627,7 +2796,7 @@ const IDS_FIJOS = [1];
 
 // Agrupación de los módulos restantes en carpetas para la navegación lateral.
 const CARPETAS_CONFIG = [
-  { nombre:"Volumen",              icono:"📁", modulos:[3,4,5] },
+  { nombre:"Volumen",              icono:"📁", modulos:[3,4,5,14] },
   { nombre:"Novedades",           icono:"📁", modulos:[6] },
   { nombre:"Financiero",          icono:"📁", modulos:[8] },
   { nombre:"Riesgo y Alertas",    icono:"📁", modulos:[7,9,10,11] },
