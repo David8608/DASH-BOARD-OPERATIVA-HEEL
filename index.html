@@ -1665,7 +1665,7 @@ document.addEventListener('click', ()=>{
 });
 
 function poblarFiltros(){
-  poblarMultiSelect('msCiudad', STATE.data.map(d=>d.ciudad), 'Todas');
+  poblarMultiSelect('msCiudad', STATE.data.map(d=>d.ciudadAI), 'Todas');
   poblarMultiSelect('msPunto', STATE.data.map(d=>d.punto), 'Todos');
   poblarMultiSelect('msEstado', STATE.data.map(d=>d.estado), 'Todos');
   poblarMultiSelect('msTipoVuelta', STATE.data.map(d=>d.tipoVuelta), 'Todos');
@@ -1725,7 +1725,7 @@ function coincideMultipleNormalizado(valorFila, seleccion){
 function coincideFiltros(fila, f){
   if(f.fechaIni && fila.fecha && fila.fecha < f.fechaIni) return false;
   if(f.fechaFin && fila.fecha && fila.fecha > f.fechaFin) return false;
-  if(!coincideMultiple(fila.ciudad, f.ciudad)) return false;
+  if(!coincideMultiple(fila.ciudadAI, f.ciudad)) return false;
   if(!coincideMultiple(fila.punto, f.punto)) return false;
   if(!coincideMultiple(fila.estado, f.estado)) return false;
   if(!coincideMultiple(fila.tipoVuelta, f.tipoVuelta)) return false;
