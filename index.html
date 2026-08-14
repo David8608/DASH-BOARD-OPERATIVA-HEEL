@@ -1336,10 +1336,8 @@ function construirLayout(){
         <div><span class="module-eyebrow">Informe Droguerías</span><h2>Comportamiento Detallado</h2></div>
         <div class="module-sub">Vista complementaria: tendencia diaria/mensual y tiempos por punto</div>
       </div>
-      <div class="grid grid-2">
-        <div class="card"><h3 class="mini-title">Servicios por día</h3><div class="chart-box"><canvas id="chartPorDia"></canvas></div></div>
-        <div class="card"><h3 class="mini-title">Servicios por mes</h3><div class="chart-box"><canvas id="chartPorMes"></canvas></div></div>
-      </div>
+      <div class="card"><h3 class="mini-title">Servicios por día (de mayor a menor)</h3><div class="chart-scroll-wrap" id="wrapServiciosPorDia" style="height:400px;"><div id="innerServiciosPorDia"><canvas id="chartPorDia"></canvas></div></div></div>
+      <div class="card" style="margin-top:20px;"><h3 class="mini-title">Servicios por mes (de mayor a menor)</h3><div class="chart-scroll-wrap" id="wrapServiciosPorMes" style="height:300px;"><div id="innerServiciosPorMes"><canvas id="chartPorMes"></canvas></div></div></div>
       <div class="grid grid-2" style="margin-top:20px;">
         <div class="card">
           <h3 class="mini-title">Entregados vs. cerrados con novedad</h3>
@@ -2005,6 +2003,31 @@ const pluginEtiquetasPorcentaje = {
   }
 };
 
+// Etiquetas de valor en formato horas/minutos, para gráficos de tiempos de
+// entrega (ej. "Gestión de tiempos"), en vez de mostrar minutos en crudo.
+const pluginEtiquetasTiempo = {
+  id: 'etiquetasTiempo',
+  afterDatasetsDraw(chart){
+    const { ctx } = chart;
+    const colores = estiloEjes();
+    chart.data.datasets.forEach((dataset, dsIndex)=>{
+      const meta = chart.getDatasetMeta(dsIndex);
+      if(meta.hidden) return;
+      meta.data.forEach((elemento, index)=>{
+        const valor = dataset.data[index];
+        if(valor === null || valor === undefined || isNaN(valor)) return;
+        ctx.save();
+        ctx.fillStyle = colores.text;
+        ctx.font = '700 11px Inter, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(formatoTiempoHM(valor), elemento.x + 6, elemento.y);
+        ctx.restore();
+      });
+    });
+  }
+};
+
 // Genera un plugin de texto centrado para gráficos de dona (ej. Efectividad).
 function crearPluginCentroDonut(tituloArriba, obtenerTextoPrincipal){
   return {
@@ -2047,52 +2070,32 @@ function obtenerDimensionComparativa(){
 function renderComportamientoDetallado(){
   const colores = estiloEjes();
   const filas = STATE.filtered;
-  const comparativa = obtenerDimensionComparativa();
 
   const porDia = new Map();
   filas.forEach(f=>{ if(f.fecha){ const k = toInputDate(f.fecha); porDia.set(k, (porDia.get(k)||0)+1); } });
-  const diasOrdenados = [...porDia.keys()].sort();
+  // Ordenados de mayor a menor volumen (no cronológicamente), en barras
+  // horizontales — mucho más claro que la vista comparativa anterior, que se
+  // volvía ilegible con muchos puntos/ciudades seleccionados a la vez.
+  const diasDesc = [...porDia.entries()].sort((a,b)=>b[1]-a[1]);
+  const diasOrdenados = [...porDia.keys()].sort(); // orden cronológico, usado por la Tendencia (media móvil)
+  ajustarAlturaScroll('innerServiciosPorDia', diasDesc.length, 24, 380);
+  crearOActualizarChart('chartPorDia', {
+    type:'bar',
+    data:{ labels:diasDesc.map(d=>d[0]), datasets:[{ label:'Servicios', data:diasDesc.map(d=>d[1]), backgroundColor:colores.accent, borderRadius:4 }] },
+    plugins:[pluginEtiquetasValor],
+    options: opcionesBaseChart(colores, {indexAxis:'y', plugins:{legend:{display:false}}, layout:{padding:{right:40}}})
+  });
 
   const porMes = new Map();
   filas.forEach(f=>{ if(f.fecha){ const k = `${f.fecha.getFullYear()}-${String(f.fecha.getMonth()+1).padStart(2,'0')}`; porMes.set(k, (porMes.get(k)||0)+1); } });
-  const mesesOrdenados = [...porMes.keys()].sort();
-
-  if(comparativa){
-    const datasetsDia = comparativa.valores.map((valor, i)=>{
-      const subset = filas.filter(x=>x[comparativa.campo] === valor);
-      const mapaSubset = new Map();
-      subset.forEach(x=>{ if(x.fecha){ const k = toInputDate(x.fecha); mapaSubset.set(k, (mapaSubset.get(k)||0)+1); } });
-      return { label: valor, data: diasOrdenados.map(d=>mapaSubset.get(d)||0), backgroundColor: PALETA_COMPARATIVA[i % PALETA_COMPARATIVA.length], borderRadius:4 };
-    });
-    crearOActualizarChart('chartPorDia', {
-      type:'bar',
-      data:{ labels:diasOrdenados.map(d=>d.slice(5)), datasets:datasetsDia },
-      options: opcionesBaseChart(colores, {plugins:{legend:{display:true}}})
-    });
-
-    const datasetsMes = comparativa.valores.map((valor, i)=>{
-      const subset = filas.filter(x=>x[comparativa.campo] === valor);
-      const mapaSubset = new Map();
-      subset.forEach(x=>{ if(x.fecha){ const k = `${x.fecha.getFullYear()}-${String(x.fecha.getMonth()+1).padStart(2,'0')}`; mapaSubset.set(k, (mapaSubset.get(k)||0)+1); } });
-      return { label: valor, data: mesesOrdenados.map(m=>mapaSubset.get(m)||0), backgroundColor: PALETA_COMPARATIVA[i % PALETA_COMPARATIVA.length], borderRadius:4 };
-    });
-    crearOActualizarChart('chartPorMes', {
-      type:'bar',
-      data:{ labels:mesesOrdenados, datasets:datasetsMes },
-      options: opcionesBaseChart(colores, {plugins:{legend:{display:true}}})
-    });
-  } else {
-    crearOActualizarChart('chartPorDia', {
-      type:'bar',
-      data:{ labels:diasOrdenados.map(d=>d.slice(5)), datasets:[{ label:'Servicios', data:diasOrdenados.map(d=>porDia.get(d)), backgroundColor:colores.accent, borderRadius:4 }] },
-      options: opcionesBaseChart(colores, {plugins:{legend:{display:false}}})
-    });
-    crearOActualizarChart('chartPorMes', {
-      type:'bar',
-      data:{ labels:mesesOrdenados, datasets:[{ label:'Servicios', data:mesesOrdenados.map(m=>porMes.get(m)), backgroundColor:colores.accentStrong, borderRadius:4 }] },
-      options: opcionesBaseChart(colores, {plugins:{legend:{display:false}}})
-    });
-  }
+  const mesesDesc = [...porMes.entries()].sort((a,b)=>b[1]-a[1]);
+  ajustarAlturaScroll('innerServiciosPorMes', mesesDesc.length, 28, 280);
+  crearOActualizarChart('chartPorMes', {
+    type:'bar',
+    data:{ labels:mesesDesc.map(m=>m[0]), datasets:[{ label:'Servicios', data:mesesDesc.map(m=>m[1]), backgroundColor:colores.accentStrong, borderRadius:4 }] },
+    plugins:[pluginEtiquetasValor],
+    options: opcionesBaseChart(colores, {indexAxis:'y', plugins:{legend:{display:false}}, layout:{padding:{right:40}}})
+  });
 
   // Entregados vs. cerrados con novedad (cantidades absolutas, mismo criterio
   // exacto que el gráfico principal de la carpeta Volumen).
@@ -2152,6 +2155,16 @@ function formatoTiempoHMS(minutosDecimal){
   const m = Math.floor((totalSeg%3600)/60);
   const s = totalSeg%60;
   return `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+// Formato horas + minutos (sin segundos), pedido específicamente para la
+// sección "Gestión de tiempos" — ej. 660 minutos -> "11h 0min".
+function formatoTiempoHM(minutosDecimal){
+  if(minutosDecimal === null || minutosDecimal === undefined || isNaN(minutosDecimal)) return 'N/D';
+  const totalMin = Math.round(minutosDecimal);
+  const h = Math.floor(totalMin/60);
+  const m = totalMin%60;
+  return `${h}h ${m}min`;
 }
 
 function ajustarAlturaScroll(idContenedorInterno, cantidadItems, alturaPorItem=30, alturaMinima=340){
@@ -2315,7 +2328,7 @@ function renderDesempenoPunto(){
           <td>${p.punto}</td>
           <td class="num">${formatoNumero(p.cumple)}</td>
           <td class="num">${formatoNumero(p.noCumple)}</td>
-          <td class="num">${formatoTiempoHMS(p.tiempoProm)}</td>
+          <td class="num">${formatoTiempoHM(p.tiempoProm)}</td>
           <td class="num">${formatoPct(p.pct)}</td>
           <td class="num">${formatoNumero(p.total)}</td>
         </tr>`).join('')}
@@ -2408,15 +2421,15 @@ function renderInformeMensual(){
 
   const tiemposValidos = filas.map(x=>x.tiempo).filter(t=>t!==null && t!==undefined && !isNaN(t));
   const tiempoTotalProm = tiemposValidos.length ? tiemposValidos.reduce((a,b)=>a+b,0)/tiemposValidos.length : null;
-  document.getElementById('tiempoTotalInformeMensual').textContent = formatoTiempoHMS(tiempoTotalProm);
+  document.getElementById('tiempoTotalInformeMensual').textContent = formatoTiempoHM(tiempoTotalProm);
 
   const tiemposPorPunto = agregarPor(filas, 'punto').filter(p=>p.tiempoProm!==null).sort((a,b)=>b.tiempoProm-a.tiempoProm);
   ajustarAlturaScroll('innerTiemposPunto', tiemposPorPunto.length, 26, 260);
   crearOActualizarChart('chartTiemposPorPuntoDesc', {
     type:'bar',
     data:{ labels:tiemposPorPunto.map(p=>p.nombre), datasets:[{ data:tiemposPorPunto.map(p=>Math.round(p.tiempoProm)), backgroundColor:colores.accentStrong, borderRadius:4 }] },
-    plugins:[pluginEtiquetasValor],
-    options: opcionesBaseChart(colores, {indexAxis:'y', plugins:{legend:{display:false}}, layout:{padding:{right:46}}})
+    plugins:[pluginEtiquetasTiempo],
+    options: opcionesBaseChart(colores, {indexAxis:'y', plugins:{legend:{display:false}}, layout:{padding:{right:56}}})
   });
 
   const ticketGeneral = calcularTicketPromedio(STATE.promo, filtrosActuales);
@@ -2959,6 +2972,15 @@ function renderMapa(){
   if(typeof L === 'undefined'){
     const mapCard = document.getElementById('mapContainer');
     if(mapCard) mapCard.innerHTML = '<div class="empty-note">⚠ La librería de mapas (Leaflet) no se pudo cargar desde el CDN.</div>';
+    return;
+  }
+  const contenedorMapa = document.getElementById('mapContainer');
+  if(!contenedorMapa || contenedorMapa.offsetParent === null){
+    // La carpeta "Mapa de Calor" no está activa en este momento (el módulo
+    // está oculto con display:none). Inicializar Leaflet dentro de un
+    // contenedor oculto lo deja en un estado roto de forma permanente, así
+    // que se difiere: el mapa se construye correctamente la primera vez que
+    // el usuario realmente abre esa carpeta.
     return;
   }
   if(!STATE.map) inicializarMapa();
