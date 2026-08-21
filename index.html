@@ -2079,10 +2079,8 @@ function renderComportamientoDetallado(){
 
   const porDia = new Map();
   filas.forEach(f=>{ if(f.fecha){ const k = toInputDate(f.fecha); porDia.set(k, (porDia.get(k)||0)+1); } });
-  // Ordenados de mayor a menor volumen (no cronológicamente), en barras
-  // horizontales — mucho más claro que la vista comparativa anterior, que se
-  // volvía ilegible con muchos puntos/ciudades seleccionados a la vez.
-  const diasDesc = [...porDia.entries()].sort((a,b)=>b[1]-a[1]);
+  // Ordenados por fecha (cronológicamente), en barras horizontales.
+  const diasDesc = [...porDia.entries()].sort((a,b)=> a[0] < b[0] ? -1 : (a[0] > b[0] ? 1 : 0));
   const diasOrdenados = [...porDia.keys()].sort(); // orden cronológico, usado por la Tendencia (media móvil)
   ajustarAlturaScroll('innerServiciosPorDia', diasDesc.length, 24, 380);
   crearOActualizarChart('chartPorDia', {
@@ -2094,7 +2092,7 @@ function renderComportamientoDetallado(){
 
   const porMes = new Map();
   filas.forEach(f=>{ if(f.fecha){ const k = `${f.fecha.getFullYear()}-${String(f.fecha.getMonth()+1).padStart(2,'0')}`; porMes.set(k, (porMes.get(k)||0)+1); } });
-  const mesesDesc = [...porMes.entries()].sort((a,b)=>b[1]-a[1]);
+  const mesesDesc = [...porMes.entries()].sort((a,b)=> a[0] < b[0] ? -1 : (a[0] > b[0] ? 1 : 0));
   ajustarAlturaScroll('innerServiciosPorMes', mesesDesc.length, 28, 280);
   crearOActualizarChart('chartPorMes', {
     type:'bar',
@@ -2720,13 +2718,12 @@ function renderTicketPromedio(){
       ${filasTabla.map(r=>`<tr${r.administrativo?' style="opacity:.7;"':''}><td>${r.punto}</td><td>${r.ciudad}</td><td class="num">${formatoMoneda(r.promedio)}</td><td class="num">${formatoNumero(r.registros)}</td><td>${r.administrativo?'<span class="badge yellow">Administrativo · no promediado</span>':''}</td></tr>`).join('')}
     </tbody></table>` : `<div class="empty-note">Sin datos de la hoja Promoción de Entradas.</div>`;
 
-  // Per Cápita: costo fijo del punto / total de servicios del año (columna Total general)
-  // Se excluye también el punto administrativo del cálculo de eficiencia, por la
-  // misma razón: su "costo por servicio" no es comparable (1 servicio/mes ficticio).
+  // Per Cápita: valor real tomado directamente de la columna AE de la hoja
+  // Promoción de Entradas ("TICKET PROMEDIO ANUAL"), sin recalcularlo.
   let resumen = STATE.promoResumen || [];
   if(f.ciudad) resumen = resumen.filter(r=>coincideMultipleNormalizado(r.ciudad, f.ciudad));
   if(f.punto) resumen = resumen.filter(r=>coincideMultipleNormalizado(r.punto, f.punto));
-  const conPerCapita = resumen.filter(r=>r.costoPorServicio !== null && !esPuntoAdministrativo(r.punto)).sort((a,b)=>a.costoPorServicio-b.costoPorServicio);
+  const conPerCapita = resumen.filter(r=>r.ticketAnual !== null && !esPuntoAdministrativo(r.punto)).sort((a,b)=>a.ticketAnual-b.ticketAnual);
   const adminResumen = resumen.filter(r=>esPuntoAdministrativo(r.punto));
   document.getElementById('tablaPerCapita').innerHTML = (conPerCapita.length || adminResumen.length) ? `
     <table class="data-table"><thead><tr><th>Punto</th><th>Ciudad</th><th>Clasificación</th><th>Mensajeros</th><th>Costo</th><th>Servicios (año)</th><th>Per Cápita</th><th></th></tr></thead><tbody>
@@ -2736,7 +2733,7 @@ function renderTicketPromedio(){
           <td class="num">${r.mensajeros!==null?formatoNumero(r.mensajeros,1):'N/D'}</td>
           <td class="num">${formatoMoneda(r.costo)}</td>
           <td class="num">${formatoNumero(r.totalGeneral)}</td>
-          <td class="num">${formatoMoneda(r.costoPorServicio)}</td>
+          <td class="num">${formatoMoneda(r.ticketAnual)}</td>
           <td></td>
         </tr>`).join('')}
       ${adminResumen.map(r=>`
@@ -2745,7 +2742,7 @@ function renderTicketPromedio(){
           <td class="num">${r.mensajeros!==null?formatoNumero(r.mensajeros,1):'N/D'}</td>
           <td class="num">${formatoMoneda(r.costo)}</td>
           <td class="num">${formatoNumero(r.totalGeneral)}</td>
-          <td class="num">${formatoMoneda(r.costoPorServicio)}</td>
+          <td class="num">${formatoMoneda(r.ticketAnual)}</td>
           <td><span class="badge yellow">Administrativo · no promediado</span></td>
         </tr>`).join('')}
     </tbody></table>` : `<div class="empty-note">Sin datos de Mensajeros/Costo en la hoja Promoción de Entradas.</div>`;
